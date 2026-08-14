@@ -24,6 +24,7 @@ public class ModConfigMenu {
         activationSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.rightClick"), options.rightClickToOpen, true).setSaveConsumer(value -> options.rightClickToOpen = value));
         activationSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.keybindInInv"), options.keybingInInv, true).setSaveConsumer(value -> options.keybingInInv = value));
         activationSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.rightClickInInv"), options.rightClickInv, true).setSaveConsumer(value -> options.rightClickInv = value));
+        activationSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.rightClickContainerShulker"), options.rightClickContainerShulker, true).setSaveConsumer(value -> options.rightClickContainerShulker = value));
 
         ConfigSection optionsSection = new ConfigSection(configScreen, Text.translatable("key.quickshulker.config.category.options"));
         optionsSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.rightClickClose"), options.rightClickClose, false).setSaveConsumer(value -> options.rightClickClose = value));
@@ -41,6 +42,9 @@ public class ModConfigMenu {
         enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickStonecutter"), options.quickStonecutter, true).setSaveConsumer(value -> options.quickStonecutter = value).setRequiresRestart());
         enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickEChest"), options.quickEChest, true).setSaveConsumer(value -> options.quickEChest = value).setRequiresRestart());
         enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickAnvil"), options.quickAnvil, true).setSaveConsumer(value -> options.quickAnvil = value).setRequiresRestart());
+        enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickGrindstone"), options.quickGrindstone, true).setSaveConsumer(value -> options.quickGrindstone = value).setRequiresRestart());
+        enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickSmithingTable"), options.quickSmithingTable, true).setSaveConsumer(value -> options.quickSmithingTable = value).setRequiresRestart());
+        enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickCartographyTable"), options.quickCartographyTable, true).setSaveConsumer(value -> options.quickCartographyTable = value).setRequiresRestart());
 
         return configScreen;
     }

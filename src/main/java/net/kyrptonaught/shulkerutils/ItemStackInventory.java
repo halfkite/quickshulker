@@ -15,9 +15,21 @@ public class ItemStackInventory extends SimpleInventory {
     protected final int SIZE;
 
     public ItemStackInventory(ItemStack stack, int SIZE) {
-        super(getStacks(stack, SIZE).toArray(new ItemStack[SIZE]));
+        this(stack, resolveSize(stack, SIZE), true);
+    }
+
+    private ItemStackInventory(ItemStack stack, int resolvedSize, boolean ignored) {
+        super(getStacks(stack, resolvedSize).toArray(new ItemStack[resolvedSize]));
         itemStack = stack;
-        this.SIZE = SIZE;
+        this.SIZE = resolvedSize;
+    }
+
+    private static int resolveSize(ItemStack stack, int requestedSize) {
+        ContainerComponent contents = stack.getComponents().get(DataComponentTypes.CONTAINER);
+        if (contents == null) {
+            return requestedSize;
+        }
+        return Math.max(requestedSize, Math.toIntExact(contents.stream().count()));
     }
 
     public static DefaultedList<ItemStack> getStacks(ItemStack usedStack, int SIZE) {

@@ -30,10 +30,14 @@ public class ShulkerUtils {
     }
 
     public static ItemStackInventory getInventoryFromShulker(ItemStack stack) {
+        return new ItemStackInventory(stack, getInventorySize(stack));
+    }
+
+    public static int getInventorySize(ItemStack stack) {
         Block shulker = ((BlockItem) stack.getItem()).getBlock();
         if (shulker instanceof UpgradableShulker) {
-            return new ItemStackInventory(stack, ((UpgradableShulker) shulker).getInventorySize());
+            return ((UpgradableShulker) shulker).getInventorySize();
         }
-        return new ItemStackInventory(stack, 27);
+        return 27;
     }
 }

@@ -6,6 +6,7 @@ import net.kyrptonaught.quickshulker.QuickShulkerMod;
 import net.kyrptonaught.quickshulker.client.ClientUtil;
 import net.kyrptonaught.quickshulker.client.QuickShulkerModClient;
 import net.kyrptonaught.quickshulker.util.MouseDraggedHandler;
+import net.kyrptonaught.shulkerutils.ShulkerUtils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
@@ -49,7 +50,7 @@ public abstract class ScreenMixin {
     private void QS$keyPressed(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
         if (QuickShulkerMod.getConfig().keybingInInv) {
             if (QuickShulkerModClient.getKeybinding().matches(keyCode, InputUtil.Type.KEYSYM)) {
-                if (handleTrigger())
+                if (handleTrigger(true, false))
                     cir.setReturnValue(true);
             }
         }
@@ -57,9 +58,9 @@ public abstract class ScreenMixin {
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void QS$mousePressed(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
-        if (QuickShulkerMod.getConfig().rightClickInv) {
-            if (this.handler.getCursorStack().isEmpty() && button == 1 && this.focusedSlot != null && this.focusedSlot.getStack().getCount() == 1) {
-                if (handleTrigger()) {
+        if (QuickShulkerMod.getConfig().rightClickInv || QuickShulkerMod.getConfig().rightClickContainerShulker) {
+            if (this.handler.getCursorStack().isEmpty() && button == 1 && this.focusedSlot != null) {
+                if (handleTrigger(QuickShulkerMod.getConfig().rightClickInv, QuickShulkerMod.getConfig().rightClickContainerShulker)) {
                     this.cancelNextRelease = true;
                     cir.setReturnValue(true);
                     return;
@@ -68,7 +69,7 @@ public abstract class ScreenMixin {
         }
         if (QuickShulkerMod.getConfig().keybingInInv) {
             if (QuickShulkerModClient.getKeybinding().matches(button, InputUtil.Type.MOUSE)) {
-                if (handleTrigger()) {
+                if (handleTrigger(true, false)) {
                     this.cancelNextRelease = true;
                     cir.setReturnValue(true);
                     return;
@@ -91,21 +92,26 @@ public abstract class ScreenMixin {
     }
 
     @Unique
-    private boolean handleTrigger() {
+    private boolean handleTrigger(boolean allowPlayerInventory, boolean allowExternalShulker) {
         if (this.focusedSlot != null) {
-            return isValid(this.focusedSlot.getStack(), ClientUtil.getSlotId(handler, this.focusedSlot));
+            return isValid(this.focusedSlot.getStack(), ClientUtil.getSlotId(handler, this.focusedSlot), allowPlayerInventory, allowExternalShulker);
         }
         return false;
     }
 
     @Unique
-    private boolean isValid(ItemStack stack, int id) {
-        if (this.focusedSlot.inventory instanceof PlayerInventory)
-            if (ClientUtil.CheckAndSend(stack, id)) {
-                QuickShulkerMod.lastMouseX = MinecraftClient.getInstance().mouse.getX();
-                QuickShulkerMod.lastMouseY = MinecraftClient.getInstance().mouse.getY();
-                return true;
-            }
+    private boolean isValid(ItemStack stack, int id, boolean allowPlayerInventory, boolean allowExternalShulker) {
+        boolean playerInventorySlot = allowPlayerInventory && this.focusedSlot.inventory instanceof PlayerInventory;
+        boolean externalShulkerSlot = allowExternalShulker
+                && !ClientUtil.isCreativeScreen(MinecraftClient.getInstance().player)
+                && stack.getCount() == 1
+                && ShulkerUtils.isShulkerItem(stack)
+                && this.focusedSlot.canInsert(stack);
+        if ((playerInventorySlot || externalShulkerSlot) && ClientUtil.CheckAndSend(stack, id)) {
+            QuickShulkerMod.lastMouseX = MinecraftClient.getInstance().mouse.getX();
+            QuickShulkerMod.lastMouseY = MinecraftClient.getInstance().mouse.getY();
+            return true;
+        }
         return false;
     }
 }

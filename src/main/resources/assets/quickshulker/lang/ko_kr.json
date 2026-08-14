@@ -7,6 +7,7 @@
   "key.quickshulker.config.rightClick": "아이템 들고있는 상태에서 오른쪽 버튼 누르기",
   "key.quickshulker.config.keybindInInv": "인벤토리에서 마우스를 올린 상태에서 단축키 누르기",
   "key.quickshulker.config.rightClickInInv": "인벤토리에서 마우스를 올린 상태에서 오른쪽 버튼 누르기",
+  "key.quickshulker.config.rightClickContainerShulker": "컨테이너 안의 셜커 상자를 오른쪽 클릭으로 열기",
   "key.quickshulker.config.category.options": "옵션",
   "key.quickshulker.config.rightClickClose": "열린 셜커 상자를 오른쪽 클릭으로 닫기",
   "key.quickshulker.config.category.bundleing": "꾸러미",
@@ -17,5 +18,9 @@
   "key.quickshulker.config.quickShulkerBox": "셜커 상자 열기 사용",
   "key.quickshulker.config.quickCraftingTable": "작업대 열기 사용",
   "key.quickshulker.config.quickStonecutter": "석재 절단기 열기 사용",
-  "key.quickshulker.config.quickEChest": "엔더 상자 열기 사용"
+  "key.quickshulker.config.quickEChest": "엔더 상자 열기 사용",
+  "key.quickshulker.config.quickAnvil": "모루 열기 사용",
+  "key.quickshulker.config.quickGrindstone": "숫돌 열기 사용",
+  "key.quickshulker.config.quickSmithingTable": "대장장이 작업대 열기 사용",
+  "key.quickshulker.config.quickCartographyTable": "지도 제작대 열기 사용"
 }

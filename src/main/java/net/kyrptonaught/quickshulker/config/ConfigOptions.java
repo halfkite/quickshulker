@@ -19,6 +19,8 @@ public class ConfigOptions implements AbstractConfigFile {
     public boolean keybingInInv = true;
     @Comment("Right Clicking a shulker in your inv opens it")
     public boolean rightClickInv = true;
+    @Comment("Right Clicking a shulker in another container opens it")
+    public boolean rightClickContainerShulker = true;
 
     @Comment("Right Clicking the opened shulker in your inv closes it")
     public boolean rightClickClose = false;
@@ -43,4 +45,10 @@ public class ConfigOptions implements AbstractConfigFile {
     public boolean quickEChest = true;
     @Comment("Enable opening Anvil")
     public boolean quickAnvil = true;
+    @Comment("Enable opening Grindstone")
+    public boolean quickGrindstone = true;
+    @Comment("Enable opening Smithing Table")
+    public boolean quickSmithingTable = true;
+    @Comment("Enable opening Cartography Table")
+    public boolean quickCartographyTable = true;
 }

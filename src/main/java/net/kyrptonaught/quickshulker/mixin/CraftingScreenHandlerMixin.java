@@ -11,7 +11,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(value = {CraftingScreenHandler.class, StonecutterScreenHandler.class, ForgingScreenHandler.class})
+@Mixin(value = {CraftingScreenHandler.class, StonecutterScreenHandler.class, ForgingScreenHandler.class,
+        GrindstoneScreenHandler.class, CartographyTableScreenHandler.class})
 public abstract class CraftingScreenHandlerMixin extends ScreenHandler {
 
     protected CraftingScreenHandlerMixin(@Nullable ScreenHandlerType<?> type, int syncId) {

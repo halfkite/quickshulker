@@ -1,6 +1,7 @@
 package net.kyrptonaught.quickshulker.api;
 
 import net.kyrptonaught.quickshulker.QuickShulkerMod;
+import net.kyrptonaught.quickshulker.compat.ams.AMSCompat;
 import net.kyrptonaught.shulkerutils.ShulkerUtils;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.Inventory;
@@ -35,7 +36,8 @@ public class QuickShulkerData {
 
     public Inventory getInventory(PlayerEntity player, ItemStack stack) {
         if (bundleInvGetter != null) return bundleInvGetter.apply(player, stack);
-        return ShulkerUtils.getInventoryFromShulker(stack);
+        int inventorySize = AMSCompat.getEffectiveShulkerInventorySize(stack, ShulkerUtils.getInventorySize(stack));
+        return new ItemStackInventory(stack, inventorySize);
     }
 
     public boolean canBundleInsertItem(PlayerEntity player, Inventory inventory, ItemStack hostStack, ItemStack insertStack) {

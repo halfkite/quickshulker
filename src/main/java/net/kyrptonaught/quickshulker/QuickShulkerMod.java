@@ -9,6 +9,7 @@ import net.kyrptonaught.quickshulker.api.*;
 import net.kyrptonaught.quickshulker.compat.ModIds;
 import net.kyrptonaught.quickshulker.compat.ModUtils;
 import net.kyrptonaught.quickshulker.compat.reinfshulker.ReinfshulkerOpenableRegistry;
+import net.kyrptonaught.quickshulker.compat.ams.AMSCompat;
 import net.kyrptonaught.quickshulker.config.ConfigOptions;
 import net.kyrptonaught.quickshulker.event.EventListeners;
 import net.kyrptonaught.quickshulker.network.EnderChestS2CSyncPacket;
@@ -23,6 +24,7 @@ import net.minecraft.screen.*;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
+import net.kyrptonaught.shulkerutils.ShulkerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +77,7 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
                     .setItem(ShulkerBoxBlock.class)
                     .supportsBundleing(true)
                     .setOpenAction(((player, stack) -> player.openHandledScreen(new SimpleNamedScreenHandlerFactory((i, playerInventory, playerEntity) ->
-                            new ShulkerBoxScreenHandler(i, player.getInventory(), new ItemStackInventory(stack, 27)), stack.getComponents().contains(DataComponentTypes.CUSTOM_NAME) ? stack.getName() : Text.translatable("container.shulkerBox")))))
+                            new ShulkerBoxScreenHandler(i, player.getInventory(), new ItemStackInventory(stack, getShulkerInventorySize(stack))), stack.getComponents().contains(DataComponentTypes.CUSTOM_NAME) ? stack.getName() : Text.translatable("container.shulkerBox")))))
                     .register();
 
         if (getConfig().quickEChest)
@@ -84,7 +86,7 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
                     .supportsBundleing(true)
                     .ignoreSingleStackCheck(true)
                     .setOpenAction(((player, stack) -> player.openHandledScreen(new SimpleNamedScreenHandlerFactory((i, playerInventory, playerEntity) ->
-                            GenericContainerScreenHandler.createGeneric9x3(i, playerInventory, player.getEnderChestInventory()), Text.translatable("container.enderchest")))))
+                            createEnderChestHandler(i, playerInventory, player.getEnderChestInventory()), Text.translatable("container.enderchest")))))
                     .register();
 
         if (getConfig().quickCraftingTables)
@@ -110,9 +112,44 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
                             new AnvilScreenHandler(i, playerInventory, new ModScreenHandlerContext(playerEntity, stack)), Text.translatable("container.repair"))))
                     .register();
 
+        if (getConfig().quickGrindstone)
+            new QuickOpenableRegistry.Builder()
+                    .setItem(GrindstoneBlock.class)
+                    .ignoreSingleStackCheck(true)
+                    .setOpenAction((player, stack) -> player.openHandledScreen(new SimpleNamedScreenHandlerFactory((i, playerInventory, playerEntity) ->
+                            new GrindstoneScreenHandler(i, playerInventory, ScreenHandlerContext.create(player.getEntityWorld(), player.getBlockPos())), Text.translatable("container.grindstone_title"))))
+                    .register();
+
+        if (getConfig().quickSmithingTable)
+            new QuickOpenableRegistry.Builder()
+                    .setItem(SmithingTableBlock.class)
+                    .ignoreSingleStackCheck(true)
+                    .setOpenAction((player, stack) -> player.openHandledScreen(new SimpleNamedScreenHandlerFactory((i, playerInventory, playerEntity) ->
+                            new SmithingScreenHandler(i, playerInventory, ScreenHandlerContext.create(player.getEntityWorld(), player.getBlockPos())), Text.translatable("container.upgrade"))))
+                    .register();
+
+        if (getConfig().quickCartographyTable)
+            new QuickOpenableRegistry.Builder()
+                    .setItem(CartographyTableBlock.class)
+                    .ignoreSingleStackCheck(true)
+                    .setOpenAction((player, stack) -> player.openHandledScreen(new SimpleNamedScreenHandlerFactory((i, playerInventory, playerEntity) ->
+                            new CartographyTableScreenHandler(i, playerInventory, ScreenHandlerContext.create(player.getEntityWorld(), player.getBlockPos())), Text.translatable("container.cartography_table"))))
+                    .register();
+
         if(ModUtils.isModLoad(ModIds.reinfshulker) && QuickShulkerMod.getConfig().quickShulkerBox) {
             ReinfshulkerOpenableRegistry.registerProviders();
         }
+    }
+
+    private static int getShulkerInventorySize(ItemStack stack) {
+        return AMSCompat.getEffectiveShulkerInventorySize(stack, ShulkerUtils.getInventorySize(stack));
+    }
+
+    private static GenericContainerScreenHandler createEnderChestHandler(int syncId, PlayerInventory playerInventory, net.minecraft.inventory.Inventory inventory) {
+        if (inventory.size() == 54) {
+            return GenericContainerScreenHandler.createGeneric9x6(syncId, playerInventory, inventory);
+        }
+        return GenericContainerScreenHandler.createGeneric9x3(syncId, playerInventory, inventory);
     }
 
 }
