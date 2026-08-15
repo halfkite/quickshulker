@@ -15,6 +15,7 @@ import net.kyrptonaught.quickshulker.event.EventListeners;
 import net.kyrptonaught.quickshulker.network.EnderChestS2CSyncPacket;
 import net.kyrptonaught.quickshulker.network.OpenInventoryPacket;
 import net.kyrptonaught.quickshulker.network.OpenShulkerPacket;
+import net.kyrptonaught.quickshulker.network.OpenContainerShulkerPacket;
 import net.kyrptonaught.quickshulker.network.QuickBundlePacket;
 import net.minecraft.block.*;
 import net.minecraft.component.DataComponentTypes;
@@ -39,6 +40,7 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
     public void onInitialize() {
         config.load();
         OpenShulkerPacket.registerReceivePacket();
+        OpenContainerShulkerPacket.registerReceivePacket();
         QuickBundlePacket.registerReceivePacket();
         EventListeners.registerEventListeners();
 

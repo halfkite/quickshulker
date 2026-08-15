@@ -107,7 +107,7 @@ public abstract class ScreenMixin {
                 && stack.getCount() == 1
                 && ShulkerUtils.isShulkerItem(stack)
                 && this.focusedSlot.canInsert(stack);
-        if ((playerInventorySlot || externalShulkerSlot) && ClientUtil.CheckAndSend(stack, id)) {
+        if ((playerInventorySlot || externalShulkerSlot) && ClientUtil.CheckAndSend(stack, id, externalShulkerSlot)) {
             QuickShulkerMod.lastMouseX = MinecraftClient.getInstance().mouse.getX();
             QuickShulkerMod.lastMouseY = MinecraftClient.getInstance().mouse.getY();
             return true;
