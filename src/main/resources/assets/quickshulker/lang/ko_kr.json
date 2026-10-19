@@ -1,4 +1,9 @@
 {
+  "key.quickshulker.config.quickContainers": "휴대용 컨테이너 허용 (서버 설정)",
+  "key.quickshulker.config.quickContainersCreativeOnly": "휴대용 컨테이너: 크리에이티브 전용",
+  "quickshulker.container.storage": "%s — 저장 공간",
+  "quickshulker.container.denied": "컨테이너가 비활성화되었거나 크리에이티브 모드가 필요합니다.",
+  "quickshulker.container.loot_table": "전리품을 생성한 후 컨테이너를 편집하세요.",
   "key.categories.quickshulker": "Quick Shulker",
   "key.quickshulker.quickshulker": "들고 있던 셜커 상자 열기",
   "key.quickshulker.config.category.activation": "작동 방법",

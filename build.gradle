@@ -7,12 +7,24 @@ sourceCompatibility = JavaVersion.VERSION_21
 targetCompatibility = JavaVersion.VERSION_21
 
 archivesBaseName = project.archives_base_name
-version = project.mod_version
+version = "${mod_version}-${minecraft_version}"
 group = project.maven_group
 
 
 loom {
 	accessWidenerPath = file("src/main/resources/quickshulker.accesswidener")
+	mods {
+		quickshulker { sourceSet sourceSets.main }
+		quickshulkerRegression { sourceSet sourceSets.test }
+	}
+	runs {
+		regression {
+			server()
+			source sourceSets.test
+			vmArg '-Dquickshulker.regression=true'
+			runDir 'build/regression-run'
+		}
+	}
 }
 
 repositories {
@@ -39,18 +51,25 @@ dependencies {
 
 	modImplementation("com.terraformersmc:modmenu:11.0.3") { exclude group: "net.fabricmc.fabric-api" }
 	modImplementation ("curse.maven:reinforced-shulker-boxes-529874:6038336") { exclude group: "net.fabricmc.fabric-api" }
-	modImplementation "atonkish.reinfcore:reinforced-core:4.0.2+1.21.1"
+	if (providers.gradleProperty('localCompatDependencies').getOrElse('false').toBoolean()) {
+		modImplementation files('libs/reinforced-core-4.0.2+1.21.1.jar')
+		modRuntimeOnly files('libs/cloth-config-fabric-15.0.130-fabric.jar')
+		compileOnly files('libs/annotations-25.0.0.jar')
+		configurations.configureEach { exclude group: 'org.jetbrains', module: 'annotations' }
+	} else {
+		modImplementation "atonkish.reinfcore:reinforced-core:4.0.2+1.21.1"
+	}
 
 	modImplementation include("me.fallenbreath:conditional-mixin-fabric:0.6.4")
 	compileOnly group: "com.google.code.findbugs", name: "jsr305", version: "3.0.2"
 }
 
 processResources {
-	inputs.property "version", project.mod_version
+	inputs.property "version", project.version
 
 	filesMatching("fabric.mod.json") {
 		expand (
-				"version": project.mod_version
+				"version": inputs.properties.version
 		)
 	}
 }
@@ -62,6 +81,11 @@ tasks.withType(JavaCompile).configureEach {
 java {
 	withSourcesJar()
 }
+
+tasks.register('regressionTest') {
+	dependsOn tasks.named('runRegression')
+}
+check.dependsOn regressionTest
 
 jar {
 	from("LICENSE") {

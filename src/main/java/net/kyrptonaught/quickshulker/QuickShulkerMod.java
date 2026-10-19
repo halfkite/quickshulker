@@ -22,6 +22,7 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.*;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
@@ -39,6 +40,8 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
     @Override
     public void onInitialize() {
         config.load();
+        net.kyrptonaught.quickshulker.command.QuickShulkerCommands.register();
+        net.kyrptonaught.quickshulker.network.ContainerPolicyPacket.register();
         OpenShulkerPacket.registerReceivePacket();
         OpenContainerShulkerPacket.registerReceivePacket();
         QuickBundlePacket.registerReceivePacket();
@@ -46,6 +49,10 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
 
         UseItemCallback.EVENT.register((player, world, hand) -> {
             ItemStack stack = player.getStackInHand(hand);
+            if (net.kyrptonaught.quickshulker.container.PortableContainers.supports(stack)) {
+                if (!net.kyrptonaught.quickshulker.container.PortableContainers.allowed(player)) return TypedActionResult.pass(stack);
+                if (world.isClient() && !OpenContainerShulkerPacket.canSend()) return TypedActionResult.pass(stack);
+            }
             if (QuickShulkerMod.getConfig().rightClickToOpen) {
                 if (Util.isOpenableItem(stack) && Util.canOpenInHand(stack)) {
                     if(world.isClient()){
@@ -78,8 +85,9 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
             new QuickOpenableRegistry.Builder()
                     .setItem(ShulkerBoxBlock.class)
                     .supportsBundleing(true)
+                    .getSound(((stack, isOpenSound) -> isOpenSound ? SoundEvents.BLOCK_SHULKER_BOX_OPEN : SoundEvents.BLOCK_SHULKER_BOX_CLOSE))
                     .setOpenAction(((player, stack) -> player.openHandledScreen(new SimpleNamedScreenHandlerFactory((i, playerInventory, playerEntity) ->
-                            new ShulkerBoxScreenHandler(i, player.getInventory(), new ItemStackInventory(stack, getShulkerInventorySize(stack))), stack.getComponents().contains(DataComponentTypes.CUSTOM_NAME) ? stack.getName() : Text.translatable("container.shulkerBox")))))
+                            createShulkerHandler(i, playerInventory, stack), stack.getComponents().contains(DataComponentTypes.CUSTOM_NAME) ? stack.getName() : Text.translatable("container.shulkerBox")))))
                     .register();
 
         if (getConfig().quickEChest)
@@ -87,6 +95,7 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
                     .setItem(EnderChestBlock.class)
                     .supportsBundleing(true)
                     .ignoreSingleStackCheck(true)
+                    .getSound((stack, isOpenSound) -> isOpenSound ? SoundEvents.BLOCK_ENDER_CHEST_OPEN : SoundEvents.BLOCK_ENDER_CHEST_CLOSE)
                     .setOpenAction(((player, stack) -> player.openHandledScreen(new SimpleNamedScreenHandlerFactory((i, playerInventory, playerEntity) ->
                             createEnderChestHandler(i, playerInventory, player.getEnderChestInventory()), Text.translatable("container.enderchest")))))
                     .register();
@@ -144,10 +153,23 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
     }
 
     private static int getShulkerInventorySize(ItemStack stack) {
-        return AMSCompat.getEffectiveShulkerInventorySize(stack, ShulkerUtils.getInventorySize(stack));
+        int desired = AMSCompat.getEffectiveShulkerInventorySize(stack, ShulkerUtils.getInventorySize(stack));
+        return Math.max(desired, (int) stack.getOrDefault(DataComponentTypes.CONTAINER, net.minecraft.component.type.ContainerComponent.DEFAULT).stream().count());
+    }
+
+    private static ScreenHandler createShulkerHandler(int id, PlayerInventory playerInventory, ItemStack stack) {
+        int size = getShulkerInventorySize(stack);
+        if (size > 27) {
+            return new net.kyrptonaught.quickshulker.container.PortableStorageHandler(id, playerInventory, stack,
+                new net.kyrptonaught.quickshulker.container.PortableContainers.Layout(54, 54, ScreenHandlerType.GENERIC_9X6));
+        }
+        return new ShulkerBoxScreenHandler(id, playerInventory, new ItemStackInventory(stack, size));
     }
 
     private static GenericContainerScreenHandler createEnderChestHandler(int syncId, PlayerInventory playerInventory, net.minecraft.inventory.Inventory inventory) {
+        boolean ruleEnabled = AMSCompat.isLargeEnderChestEnabled();
+        if (ruleEnabled != (inventory.size() == 54) && FabricLoader.getInstance().isModLoaded("carpet-ams-addition"))
+            LOGGER.debug("AMS largeEnderChest={}, actual slots={}; using actual slots to preserve contents", ruleEnabled, inventory.size());
         if (inventory.size() == 54) {
             return GenericContainerScreenHandler.createGeneric9x6(syncId, playerInventory, inventory);
         }

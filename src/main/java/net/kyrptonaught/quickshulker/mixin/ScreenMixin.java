@@ -103,6 +103,7 @@ public abstract class ScreenMixin {
     private boolean isValid(ItemStack stack, int id, boolean allowPlayerInventory, boolean allowExternalShulker) {
         boolean playerInventorySlot = allowPlayerInventory && this.focusedSlot.inventory instanceof PlayerInventory;
         boolean externalShulkerSlot = allowExternalShulker
+                && !(this.focusedSlot.inventory instanceof PlayerInventory)
                 && !ClientUtil.isCreativeScreen(MinecraftClient.getInstance().player)
                 && stack.getCount() == 1
                 && ShulkerUtils.isShulkerItem(stack)

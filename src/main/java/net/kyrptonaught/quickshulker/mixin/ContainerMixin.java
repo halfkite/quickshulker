@@ -71,6 +71,15 @@ public abstract class ContainerMixin implements ItemInventoryContainer {
 
     @Inject(method = "onSlotClick", at = @At("HEAD"), cancellable = true)
     public void QS$onClick(int slotId, int button, SlotActionType actionType, PlayerEntity player, CallbackInfo ci) {
+        if (getSourceInventory() != null && !isSourceValid(player)) {
+            if (player instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer) serverPlayer.closeHandledScreen();
+            ci.cancel();
+            return;
+        }
+        if (actionType == SlotActionType.SWAP && isSourceSlot(player.getInventory(), button)) {
+            ci.cancel();
+            return;
+        }
         if (slotId >= 0 && slotId < slots.size()) {
             Slot slot = slots.get(slotId);
             if (isSourceSlot(slot.inventory, slot.getIndex())) {
@@ -88,8 +97,7 @@ public abstract class ContainerMixin implements ItemInventoryContainer {
         this.quickshulker$sourceInventory.markDirty();
         boolean validSlot = this.quickshulker$sourceInventorySlot >= 0
                 && this.quickshulker$sourceInventorySlot < this.quickshulker$sourceInventory.size();
-        boolean validStack = validSlot
-                && this.quickshulker$sourceInventory.getStack(this.quickshulker$sourceInventorySlot) == this.quickshulker$sourceStack;
+        boolean validStack = validSlot && isSourceValid(this.quickshulker$sourcePlayer);
         if (!validStack && this.quickshulker$sourcePlayer instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer) {
             this.quickshulker$sourceInventory = null;
             serverPlayer.closeHandledScreen();

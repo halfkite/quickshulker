@@ -14,7 +14,9 @@ import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.network.packet.CustomPayload;
+import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.Slot;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 
 import java.util.List;
@@ -33,9 +35,13 @@ public record QuickBundlePacket(int slotId, ItemStack stackToBundle) implements 
         PayloadTypeRegistry.playS2C().register(QuickBundlePacket.QUICK_BUNDLE_PACKET_ID, QuickBundlePacket.CODEC);
         PayloadTypeRegistry.playC2S().register(QuickBundlePacket.QUICK_BUNDLE_PACKET_ID, QuickBundlePacket.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(QuickBundlePacket.QUICK_BUNDLE_PACKET_ID, (payload, context) -> {
-            if (context.player().isCreative()) {
-                context.server().execute(() -> BundleHelper.bundleItemIntoStack(context.player(), context.player().getInventory().getStack(payload.slotId), payload.stackToBundle, null));
-            }
+            context.server().execute(() -> {
+                var player = context.player();
+                if (((net.kyrptonaught.quickshulker.api.ItemInventoryContainer) player.currentScreenHandler)
+                        .isSourceSlot(player.getInventory(), payload.slotId)) return;
+                if (player.isCreative() && payload.slotId >= 0 && payload.slotId < player.getInventory().size())
+                    BundleHelper.bundleItemIntoStack(player, player.getInventory().getStack(payload.slotId), payload.stackToBundle, null);
+            });
         });
         UnbundlePacket.registerReceivePacket();
         BundleIntoHeld.registerReceivePacket();
@@ -65,12 +71,17 @@ public record QuickBundlePacket(int slotId, ItemStack stackToBundle) implements 
             PayloadTypeRegistry.playS2C().register(BundleIntoHeld.QUICK_BUNDLEHELD_PACKET_ID, BundleIntoHeld.CODEC);
             PayloadTypeRegistry.playC2S().register(BundleIntoHeld.QUICK_BUNDLEHELD_PACKET_ID, BundleIntoHeld.CODEC);
             ServerPlayNetworking.registerGlobalReceiver(BundleIntoHeld.QUICK_BUNDLEHELD_PACKET_ID, (payload, context) -> {
-                if (context.player().isCreative()) {
-                    context.server().execute(() -> {
-                        Slot slot = context.player().currentScreenHandler.getSlot(payload.slotId);
-                        BundleHelper.bundleItemIntoStack(context.player(), payload.stackList.get(1), payload.stackList.get(0), slot, null);
-                    });
-                }
+                context.server().execute(() -> {
+                    if (context.player().isCreative() && payload.stackList.size() == 2) {
+                        ServerPlayerEntity player = context.player();
+                        ScreenHandler handler = player.currentScreenHandler;
+                        var index = handler.getSlotIndex(player.getInventory(), payload.slotId);
+                        if (index.isEmpty()) return;
+                        Slot slot = handler.getSlot(index.getAsInt());
+                        if (!slot.canTakeItems(player)) return;
+                        BundleHelper.bundleItemIntoStack(player, payload.stackList.get(1), payload.stackList.get(0), slot, null);
+                    }
+                });
             });
         }
 
@@ -98,12 +109,17 @@ public record QuickBundlePacket(int slotId, ItemStack stackToBundle) implements 
             PayloadTypeRegistry.playS2C().register(UnbundlePacket.QUICK_UNBUNDLE_PACKET_ID, UnbundlePacket.CODEC);
             PayloadTypeRegistry.playC2S().register(UnbundlePacket.QUICK_UNBUNDLE_PACKET_ID, UnbundlePacket.CODEC);
             ServerPlayNetworking.registerGlobalReceiver(UnbundlePacket.QUICK_UNBUNDLE_PACKET_ID, (payload, context) -> {
-                if (context.player().isCreative()) {
-                    context.server().execute(() -> {
-                        Slot unbundleSlot = context.player().currentScreenHandler.getSlot(payload.slotId);
-                        BundleHelper.unbundleItem(context.player(), payload.unbundleStack, unbundleSlot);
-                    });
-                }
+                context.server().execute(() -> {
+                  if (context.player().isCreative()) {
+                    ServerPlayerEntity player = context.player();
+                    ScreenHandler handler = player.currentScreenHandler;
+                    var index = handler.getSlotIndex(player.getInventory(), payload.slotId);
+                    if (index.isEmpty()) return;
+                    Slot unbundleSlot = handler.getSlot(index.getAsInt());
+                    if (!unbundleSlot.canTakeItems(player)) return;
+                    BundleHelper.unbundleItem(player, payload.unbundleStack, unbundleSlot);
+                  }
+                });
             });
         }
 

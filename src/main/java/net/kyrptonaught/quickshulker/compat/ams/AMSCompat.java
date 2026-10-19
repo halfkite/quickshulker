@@ -12,6 +12,7 @@ import java.lang.reflect.Method;
 public final class AMSCompat {
     private static final String MOD_ID = "carpet-ams-addition";
     private static final RuleAccess RULE = findRule();
+    private static final RuleAccess ENDER_RULE = findFieldRule("largeEnderChest");
     private static boolean warned;
 
     private AMSCompat() {
@@ -22,13 +23,36 @@ public final class AMSCompat {
             return false;
         }
         try {
-            return RULE != null && RULE.isEnabled();
+            if (RULE != null) return RULE.isEnabled();
+            warnUnavailable();
+            return false;
         } catch (ReflectiveOperationException | LinkageError exception) {
             if (!warned) {
                 warned = true;
                 QuickShulkerMod.LOGGER.warn("Unable to read Carpet AMS Addition largeShulkerBox rule; using 27 slots", exception);
             }
             return false;
+        }
+    }
+
+    public static boolean isLargeEnderChestEnabled() {
+        if (!FabricLoader.getInstance().isModLoaded(MOD_ID)) return false;
+        try {
+            if (ENDER_RULE != null) return ENDER_RULE.isEnabled();
+            warnUnavailable();
+        } catch (ReflectiveOperationException | LinkageError exception) {
+            if (!warned) {
+                warned = true;
+                QuickShulkerMod.LOGGER.warn("Cannot read AMS largeEnderChest; preserving actual inventory capacity", exception);
+            }
+        }
+        return false;
+    }
+
+    private static void warnUnavailable() {
+        if (!warned) {
+            warned = true;
+            QuickShulkerMod.LOGGER.warn("AMS rule API unavailable; existing container contents will be preserved");
         }
     }
 
@@ -56,7 +80,16 @@ public final class AMSCompat {
             }
         }
 
-        return FieldRuleAccess.create("carpetamsaddition.CarpetAMSAdditionSettings", "largeShulkerBox");
+        return findFieldRule("largeShulkerBox");
+    }
+
+    private static RuleAccess findFieldRule(String name) {
+        if (!FabricLoader.getInstance().isModLoaded(MOD_ID)) return null;
+        for (String className : new String[]{"carpetamsaddition.CarpetAMSAdditionSettings", "club.mcams.carpet.AmsServerSettings"}) {
+            RuleAccess access = FieldRuleAccess.create(className, name);
+            if (access != null) return access;
+        }
+        return null;
     }
 
     private interface RuleAccess {

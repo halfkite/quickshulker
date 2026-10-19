@@ -1,0 +1,10 @@
+{
+  "primaryMinecraftVersion": "26.3",
+  "defaultLoader": "fabric",
+  "entrypoint": "build.ps1",
+  "targets": {
+    "26.3-fabric": {"project": "versions/26.3-fabric", "java": 25},
+    "26.3-neoforge": {"project": "versions/26.3-neoforge", "java": 25},
+    "1.21.1-fabric": {"project": ".", "java": 21, "maintenanceOnly": true}
+  }
+}

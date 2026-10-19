@@ -6,6 +6,10 @@ import net.kyrptonaught.kyrptconfig.keybinding.CustomKeyBinding;
 import net.kyrptonaught.quickshulker.QuickShulkerMod;
 
 public class ConfigOptions implements AbstractConfigFile {
+    @Comment("Enable portable storage containers; server authoritative")
+    public boolean quickContainers = true;
+    @Comment("Restrict portable storage containers to creative players")
+    public boolean quickContainersCreativeOnly = true;
     public static String defualtKeybind = "key.keyboard.k";
     @Comment("Activation key")
     public CustomKeyBinding keybinding = CustomKeyBinding.configDefault(QuickShulkerMod.MOD_ID, "key.keyboard.k");
@@ -21,9 +25,13 @@ public class ConfigOptions implements AbstractConfigFile {
     public boolean rightClickInv = true;
     @Comment("Right Clicking a shulker in another container opens it")
     public boolean rightClickContainerShulker = true;
+    @Comment("Check for updates")
+    public boolean checkUpdate = true;
 
     @Comment("Right Clicking the opened shulker in your inv closes it")
     public boolean rightClickClose = false;
+    @Comment("Play sound when shulker is opened or closed")
+    public boolean playSound = true;
     @Comment("Right Clicking a shulker with an item inserts it")
     public boolean supportsBundlingInsert = true;
     @Comment("Right Clicking an item with a shulker inserts it")

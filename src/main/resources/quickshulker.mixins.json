@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "ContainerMixin",
+    "SourceSlotMixin",
     "CraftingScreenHandlerMixin",
     "AnvilScreenHandlerMixin",
     "ItemMixin",

@@ -6,6 +6,7 @@ import net.kyrptonaught.shulkerutils.ShulkerUtils;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.sound.SoundEvent;
 
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -13,6 +14,7 @@ import java.util.function.BiFunction;
 public class QuickShulkerData {
     public BiConsumer<PlayerEntity, ItemStack> openConsumer;
     BiFunction<PlayerEntity, ItemStack, Inventory> bundleInvGetter;
+    BiFunction<ItemStack, Boolean, SoundEvent> soundGetter;
     CanBundleInsertItemFunction canBundleInsertItem;
 
     public boolean supportsBundleing = false;
@@ -38,6 +40,10 @@ public class QuickShulkerData {
         if (bundleInvGetter != null) return bundleInvGetter.apply(player, stack);
         int inventorySize = AMSCompat.getEffectiveShulkerInventorySize(stack, ShulkerUtils.getInventorySize(stack));
         return new ItemStackInventory(stack, inventorySize);
+    }
+
+    public SoundEvent getSound(ItemStack stack, boolean isOpenSound){
+        return soundGetter == null ? null : soundGetter.apply(stack, isOpenSound);
     }
 
     public boolean canBundleInsertItem(PlayerEntity player, Inventory inventory, ItemStack hostStack, ItemStack insertStack) {

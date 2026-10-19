@@ -33,4 +33,14 @@ public interface ItemInventoryContainer {
         return getSourceInventory() == inventory && getSourceInventorySlot() == inventorySlot;
     }
 
+    default boolean isSourceValid(PlayerEntity player) {
+        Inventory source = getSourceInventory();
+        ItemStack stack = getSourceStack();
+        return source != null && getSourceInventorySlot() >= 0 && getSourceInventorySlot() < source.size()
+                && source.getStack(getSourceInventorySlot()) == stack && !stack.isEmpty()
+                && Util.isOpenableItem(stack) && source.canPlayerUse(player)
+                && (!net.kyrptonaught.quickshulker.container.PortableContainers.supports(stack)
+                    || net.kyrptonaught.quickshulker.container.PortableContainers.allowed(player));
+    }
+
 }

@@ -19,7 +19,9 @@ public class ClientUtil {
 
     public static boolean CheckAndSend(ItemStack stack, int slot, boolean containerSlot) {
         if (Util.isOpenableItem(stack)) {
-            if (containerSlot) {
+            if (net.kyrptonaught.quickshulker.container.PortableContainers.supports(stack)
+                    && !net.kyrptonaught.quickshulker.container.PortableContainers.allowed(MinecraftClient.getInstance().player)) return false;
+            if (containerSlot || net.kyrptonaught.quickshulker.container.PortableContainers.supports(stack)) {
                 if (!OpenContainerShulkerPacket.canSend()) {
                     return false;
                 }

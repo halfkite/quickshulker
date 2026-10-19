@@ -7,12 +7,22 @@ import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.collection.DefaultedList;
 
-import java.util.Objects;
+import java.util.function.BooleanSupplier;
 
 
 public class ItemStackInventory extends SimpleInventory {
     protected final ItemStack itemStack;
     protected final int SIZE;
+    private BooleanSupplier writeAllowed = () -> true;
+
+    public void setWriteAllowed(BooleanSupplier writeAllowed) {
+        this.writeAllowed = writeAllowed;
+    }
+
+    @Override
+    public boolean canPlayerUse(PlayerEntity player) {
+        return writeAllowed.getAsBoolean();
+    }
 
     public ItemStackInventory(ItemStack stack, int SIZE) {
         this(stack, resolveSize(stack, SIZE), true);
@@ -34,12 +44,13 @@ public class ItemStackInventory extends SimpleInventory {
 
     public static DefaultedList<ItemStack> getStacks(ItemStack usedStack, int SIZE) {
         DefaultedList<ItemStack> itemStacks = DefaultedList.ofSize(SIZE, ItemStack.EMPTY);
-        Objects.requireNonNull(usedStack.getComponents().get(DataComponentTypes.CONTAINER)).copyTo(itemStacks);
+        usedStack.getOrDefault(DataComponentTypes.CONTAINER, ContainerComponent.DEFAULT).copyTo(itemStacks);
         return itemStacks;
     }
 
     @Override
     public void markDirty() {
+        if (itemStack == null || !writeAllowed.getAsBoolean()) return;
         super.markDirty();
         DefaultedList<ItemStack> itemStacks = DefaultedList.ofSize(SIZE, ItemStack.EMPTY);
         for (int i = 0; i < size(); i++) {

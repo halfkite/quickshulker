@@ -29,7 +29,8 @@ public abstract class PlayerInventoryMixin implements Inventory {
         if((((ItemInventoryContainer) handler).hasItem())){
             if(cir.getReturnValue()
                     && existingStack == this.getStack(((ItemInventoryContainer) handler).getUsedSlotInPlayerInv())
-                    && !QuickOpenableRegistry.getQuickie(stack.getItem()).ignoreSingleStackCheck){
+                    && (QuickOpenableRegistry.getQuickie(stack.getItem()) == null
+                        || !QuickOpenableRegistry.getQuickie(stack.getItem()).ignoreSingleStackCheck)){
                 cir.setReturnValue(false);
             }
         }
