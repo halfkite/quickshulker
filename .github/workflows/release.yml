@@ -83,7 +83,7 @@ jobs:
           retention-days: 14
 
   publish-github:
-    name: Attach JARs and checksums to GitHub Release
+    name: Attach JARs to GitHub Release
     needs: [validate, package]
     if: ${{ needs.validate.result == 'success' && needs.package.result == 'success' }}
     runs-on: ubuntu-latest
@@ -103,9 +103,9 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          files=(release-assets/*.jar release-assets/*.jar.sha256 release-assets/build-manifest-*.json release-assets/release-manifest.json)
+          files=(release-assets/*.jar)
           if [[ ${#files[@]} -eq 0 ]]; then
-            echo 'No verified release assets were found.' >&2
+            echo 'No verified JAR files were found.' >&2
             exit 1
           fi
           gh release upload "$RELEASE_TAG" "${files[@]}" \
