@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(value = {CraftingMenu.class, StonecutterMenu.class, ItemCombinerMenu.class, GrindstoneMenu.class, CartographyTableMenu.class})
+@Mixin(value = {CraftingMenu.class, StonecutterMenu.class, ItemCombinerMenu.class, GrindstoneMenu.class, CartographyTableMenu.class, LoomMenu.class})
 public abstract class CraftingScreenHandlerMixin extends AbstractContainerMenu {
 
     protected CraftingScreenHandlerMixin(@Nullable MenuType<?> type, int syncId) {

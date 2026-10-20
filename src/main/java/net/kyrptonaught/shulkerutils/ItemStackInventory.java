@@ -14,6 +14,11 @@ public class ItemStackInventory extends SimpleInventory {
     protected final ItemStack itemStack;
     protected final int SIZE;
     private BooleanSupplier writeAllowed = () -> true;
+    private net.kyrptonaught.quickshulker.api.ItemInventoryContainer sourceSession;
+    public void bindSourceSession(net.kyrptonaught.quickshulker.api.ItemInventoryContainer session) { sourceSession=session; }
+    public boolean isProtectedSource(net.minecraft.inventory.Inventory inventory,int slot) {
+        return sourceSession!=null && sourceSession.isSourceSlot(inventory,slot);
+    }
 
     public void setWriteAllowed(BooleanSupplier writeAllowed) {
         this.writeAllowed = writeAllowed;

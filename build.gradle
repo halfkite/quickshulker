@@ -10,15 +10,41 @@ archivesBaseName = project.archives_base_name
 version = "${mod_version}-${minecraft_version}"
 group = project.maven_group
 
+def officialBuild = providers.environmentVariable('GITHUB_ACTIONS').map { it == 'true' }.getOrElse(false) || providers.gradleProperty('officialBuild').map { it.toBoolean() }.getOrElse(false)
+def testTimestamp = providers.gradleProperty('buildTimestamp').getOrElse(new Date().format('yyyyMMdd-HHmmss',TimeZone.getTimeZone('Asia/Hong_Kong')))
+if (!(testTimestamp ==~ /\d{8}-\d{6}/)) throw new GradleException('buildTimestamp must be yyyyMMdd-HHmmss')
+tasks.withType(AbstractArchiveTask).configureEach { archiveVersion=officialBuild?project.version.toString():"${project.version}-test-${testTimestamp}" }
+tasks.register('printArtifactName') { doLast { println('ARTIFACT_FILE='+tasks.named('remapJar').get().archiveFile.get().asFile.absolutePath) } }
+sourceSets { amsApi { java.srcDir 'src/amsApi/java' }; upstreamWire { java.srcDir 'src/upstreamWire/java' } }
+sourceSets.upstreamWire.compileClasspath=sourceSets.main.compileClasspath+sourceSets.main.output
+sourceSets.test.compileClasspath+=sourceSets.upstreamWire.output
+sourceSets.test.runtimeClasspath+=sourceSets.upstreamWire.output
+dependencies { compileOnly sourceSets.amsApi.output }
+
 
 loom {
 	accessWidenerPath = file("src/main/resources/quickshulker.accesswidener")
 	mods {
 		quickshulker { sourceSet sourceSets.main }
-		quickshulkerRegression { sourceSet sourceSets.test }
+		quickshulkerRegression { sourceSet sourceSets.test; sourceSet sourceSets.upstreamWire }
 	}
 	runs {
-		regression {
+        amsWorldRegression {
+            server()
+            source sourceSets.test
+            vmArg '-Dfabric-api.gametest'
+            vmArg '-Dquickshulker.test.ams=true'
+            vmArg '-Dfabric-api.gametest.report-file=reports/ams-world-tests.xml'
+            runDir 'build/ams-world-regression-run'
+        }
+		worldRegression {
+            server()
+            source sourceSets.test
+            vmArg '-Dfabric-api.gametest'
+            vmArg '-Dfabric-api.gametest.report-file=reports/world-tests.xml'
+            runDir 'build/world-regression-run'
+        }
+        regression {
 			server()
 			source sourceSets.test
 			vmArg '-Dquickshulker.regression=true'
@@ -111,3 +137,7 @@ publishing {
 		}
 	}
 }
+
+tasks.named('compileUpstreamWireJava') { dependsOn tasks.named('classes') }
+tasks.register('worldRegressionTest') { dependsOn tasks.named('runWorldRegression') }
+check.dependsOn worldRegressionTest

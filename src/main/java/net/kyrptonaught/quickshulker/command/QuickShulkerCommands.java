@@ -1,44 +1,48 @@
 package net.kyrptonaught.quickshulker.command;
-
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.kyrptonaught.quickshulker.QuickShulkerMod;
-import net.kyrptonaught.quickshulker.network.ContainerPolicyPacket;
+import net.kyrptonaught.quickshulker.config.ContainerKind;
+import net.kyrptonaught.quickshulker.container.PortableContainers;
 import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
-
-public final class QuickShulkerCommands {
-    private QuickShulkerCommands() {}
-    public static void register() {
-        CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> dispatcher.register(
-            CommandManager.literal("quickshulker").requires(source -> source.hasPermissionLevel(2))
-                .then(option("quickContainers", false))
-                .then(option("quickContainersCreativeOnly", true))));
-    }
-
-    private static com.mojang.brigadier.builder.LiteralArgumentBuilder<net.minecraft.server.command.ServerCommandSource>
-            option(String name, boolean creativeOnly) {
-        return CommandManager.literal(name)
-            .executes(context -> {
-                boolean value = creativeOnly ? QuickShulkerMod.getConfig().quickContainersCreativeOnly
-                    : QuickShulkerMod.getConfig().quickContainers;
-                context.getSource().sendFeedback(() -> Text.literal(name + " = " + value), false);
-                return 1;
-            })
-            .then(CommandManager.argument("value", BoolArgumentType.bool()).executes(context -> {
-                boolean value = BoolArgumentType.getBool(context, "value");
-                if (creativeOnly) QuickShulkerMod.getConfig().quickContainersCreativeOnly = value;
-                else QuickShulkerMod.getConfig().quickContainers = value;
-                QuickShulkerMod.config.save();
-                for (var player : context.getSource().getServer().getPlayerManager().getPlayerList()) {
-                    if (player.currentScreenHandler instanceof net.kyrptonaught.quickshulker.container.PortableStorageHandler
-                            && net.kyrptonaught.quickshulker.container.PortableContainers.supports(
-                                ((net.kyrptonaught.quickshulker.api.ItemInventoryContainer) player.currentScreenHandler).getSourceStack())
-                            && !net.kyrptonaught.quickshulker.container.PortableContainers.allowed(player)) player.closeHandledScreen();
-                    ContainerPolicyPacket.send(player);
+public final class QuickShulkerCommands{
+    private QuickShulkerCommands(){}
+    public static void register(){CommandRegistrationCallback.EVENT.register((d,r,e)->register(d));}
+    public static void register(CommandDispatcher<ServerCommandSource> dispatcher){
+        var root=CommandManager.literal("quickshulker").requires(source -> source.hasPermissionLevel(2));
+        root.then(CommandManager.literal("quickContainers")
+            .executes(c->{var o=QuickShulkerMod.getConfig();c.getSource().sendFeedback(()->Text.literal("quickContainers = "+(!o.quickContainers?"false":o.quickContainersCreativeOnly?"creative":"true")),false);return 1;})
+            .then(CommandManager.argument("value",StringArgumentType.word()).suggests((c,b)->{
+                b.suggest("creative");b.suggest("true");b.suggest("false");return b.buildFuture();
+            }).executes(c->{
+                String value=StringArgumentType.getString(c,"value");
+                if(!value.equals("creative")&&!value.equals("true")&&!value.equals("false")){
+                    c.getSource().sendError(Text.literal("Expected creative, true or false"));return 0;
                 }
-                context.getSource().sendFeedback(() -> Text.literal(name + " = " + value), true);
-                return 1;
-            }));
+                var o=QuickShulkerMod.getConfig();o.quickContainers=!value.equals("false");o.quickContainersCreativeOnly=value.equals("creative");
+                return saved(c.getSource(),"quickContainers",value);
+            })));
+        root.then(bool("quickContainersCreativeOnly",null));
+        for(var kind:ContainerKind.values())root.then(bool(kind.key,kind));
+        dispatcher.register(root);
+    }
+    private static LiteralArgumentBuilder<ServerCommandSource> bool(String name,ContainerKind kind){
+        return CommandManager.literal(name).executes(c->{
+            boolean v=kind==null?QuickShulkerMod.getConfig().quickContainersCreativeOnly:kind.enabled(QuickShulkerMod.getConfig());
+            c.getSource().sendFeedback(()->Text.literal(name+" = "+v),false);return 1;
+        }).then(CommandManager.argument("value",BoolArgumentType.bool()).executes(c->{
+            boolean v=BoolArgumentType.getBool(c,"value");
+            if(kind==null)QuickShulkerMod.getConfig().quickContainersCreativeOnly=v;else kind.set(QuickShulkerMod.getConfig(),v);
+            return saved(c.getSource(),name,Boolean.toString(v));
+        }));
+    }
+    private static int saved(ServerCommandSource source,String name,String value){
+        QuickShulkerMod.config.save();PortableContainers.refresh(source.getServer());
+        source.sendFeedback(()->Text.literal(name+" = "+value),true);return 1;
     }
 }

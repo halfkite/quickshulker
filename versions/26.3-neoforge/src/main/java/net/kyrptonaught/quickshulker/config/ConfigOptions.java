@@ -6,6 +6,21 @@ import net.kyrptonaught.kyrptconfig.keybinding.CustomKeyBinding;
 import net.kyrptonaught.quickshulker.QuickShulker;
 
 public class ConfigOptions implements AbstractConfigFile {
+    public boolean quickLoom = true;
+    public boolean quickChest = true;
+    public boolean quickTrappedChest = true;
+    public boolean quickCopperChest = true;
+    public boolean quickBarrel = true;
+    public boolean quickShelf = true;
+    public boolean quickHopper = true;
+    public boolean quickDropper = true;
+    public boolean quickDispenser = true;
+    public boolean quickDecoratedPot = true;
+    public boolean quickCrafter = true;
+    public boolean quickFurnace = true;
+    public boolean quickSmoker = true;
+    public boolean quickBlastFurnace = true;
+    public boolean quickBrewingStand = true;
     public boolean quickContainers = true;
     public boolean quickContainersCreativeOnly = true;
     public boolean rightClickContainerShulker = true;

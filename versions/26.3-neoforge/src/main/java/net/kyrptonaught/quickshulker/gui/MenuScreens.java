@@ -13,5 +13,8 @@ public class MenuScreens {
     @SubscribeEvent
     public static void registerMenuScreens(RegisterMenuScreensEvent event){
         event.register(MenuTypes.BUNDLE_ITEM.get(), BundleItemScreen::new);
+        event.register(MenuTypes.pot(), net.kyrptonaught.quickshulker.gui.screen.CompactStorageScreen::new);
+        event.register(MenuTypes.shelf(), net.kyrptonaught.quickshulker.gui.screen.CompactStorageScreen::new);
+        event.register(MenuTypes.crafter(), net.kyrptonaught.quickshulker.gui.screen.PortableCrafterScreen::new);
     }
 }

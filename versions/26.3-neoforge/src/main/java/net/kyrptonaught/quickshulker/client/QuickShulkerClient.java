@@ -54,6 +54,10 @@ public class QuickShulkerClient {
 
     @SubscribeEvent
     public static void registerReceivePacket(RegisterClientPayloadHandlersEvent event){
+        event.register(net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.ID,
+            (payload, context) -> context.enqueueWork(() -> net.kyrptonaught.quickshulker.container.PortableContainers.setDetailedPolicy(payload)));
+        event.register(net.kyrptonaught.quickshulker.network.ContainerPolicyPacket.ID,
+            (payload, context) -> context.enqueueWork(() -> net.kyrptonaught.quickshulker.container.PortableContainers.setRemotePolicy(payload)));
         event.register(
                 OpenInventoryPacket.OPEN_INV_ID,
                 (payload, context) -> Minecraft.getInstance().gui.setScreen(new InventoryScreen(context.player()))

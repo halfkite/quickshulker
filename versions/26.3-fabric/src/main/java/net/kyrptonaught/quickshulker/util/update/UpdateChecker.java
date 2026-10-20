@@ -1,7 +1,6 @@
 package net.kyrptonaught.quickshulker.util.update;
 
 import com.google.gson.*;
-import com.google.gson.reflect.TypeToken;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.kyrptonaught.quickshulker.QuickShulkerMod;
@@ -19,8 +18,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -31,7 +28,7 @@ import java.util.regex.Pattern;
 
 public class UpdateChecker {
 
-    private static final Logger LOGGER = LogManager.getLogger("Quick Shulker Update Checker");
+    private static final Logger LOGGER = LogManager.getLogger("QuickShulkerMore Update Checker");
     private static final String CURRENT_VERSION = getCurrentVersion();
     private static final String VERSION_LIST_URL = "https://api.github.com/repos/halfkite/quickshulker/tags?per_page=100";
     private static final String DOWNLOAD_URL = "https://github.com/halfkite/quickshulker/releases";
@@ -50,7 +47,7 @@ public class UpdateChecker {
         try {
             info = executor.submit(UpdateChecker::checkWithCurrentThread).get();
         } catch (ExecutionException e) {
-            LOGGER.error("Failed Quick Shulker update check!", e);
+            LOGGER.error("Failed QuickShulkerMore update check!", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }finally {
@@ -64,7 +61,7 @@ public class UpdateChecker {
         try{
             info = updateInfo = checkUpdate0();
         } catch (IOException e) {
-            LOGGER.error("Failed Quick Shulker update check!", e);
+            LOGGER.error("Failed QuickShulkerMore update check!", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -72,50 +69,7 @@ public class UpdateChecker {
     }
 
     public static UpdateInfo checkUpdate() throws IOException, InterruptedException {
-        String url = VERSION_LIST_URL;
-        List<String> versions = new ArrayList<>();
-        String[] curVersion = CURRENT_VERSION.split("-", 3);
-        String modVersion = curVersion[0];
-        String mcVersion = curVersion[1];
-        while(url != null){
-            HttpRequest.Builder request = HttpRequest.newBuilder().GET().uri(URI.create(url));
-            HttpResponse<String> response = send(request, HttpResponse.BodyHandlers.ofString());
-            int status = response.statusCode();
-            if(status != 200){
-                LOGGER.warn("Mod version list responded with a non-200 status: {}!", status);
-                return null;
-            }
-            Gson gson = new GsonBuilder().create();
-            List<String> vers = null;
-            try {
-                vers = gson.fromJson(response.body(), new TypeToken<List<Version>>(){}).stream()
-                        .map(Version::getFriendlyString)
-                        .filter(name -> {
-                            String[] name2 = name.split("-", 3);
-                            return name2.length == 2 && mcVersion.equals(name2[1]);
-                        })
-                        .map(name -> name.split("-", 3)[0])
-                        .toList();
-            }catch(JsonSyntaxException e){
-                LOGGER.warn("Received invalid data, aborting loader update check!");
-                return null;
-            }
-            if(!vers.isEmpty()){
-                versions.addAll(vers);
-            }
-            String link = response.headers().firstValue("Link").orElse("");
-            Pattern pattern = Pattern.compile("<([^>]+)>; rel=\"next\"");
-            Matcher matcher = pattern.matcher(link);
-            url = matcher.find() ? matcher.group(1) : null;
-        }
-        if(versions.isEmpty()) return null;
-        String lastVersion = versions.stream().max(Version::compareString).orElse(modVersion);
-        if(isNewer(lastVersion, modVersion)){
-            LOGGER.debug("Quick Shulker has a update available!");
-            return new UpdateInfo(modVersion, lastVersion);
-        }
-        LOGGER.debug("Quick Shulker is up to date.");
-        return null;
+        return checkUpdate0();
     }
 
     public static UpdateInfo checkUpdate0() throws IOException, InterruptedException {
@@ -142,9 +96,9 @@ public class UpdateChecker {
                 JsonObject obj = child.getAsJsonObject();
                 Optional<String> name = getString(obj, "name");
                 if(name.isEmpty()) continue;
-                String[] name2 = name.get().split("-", 3);
-                if(name2.length == 2 && mcVersion.equals(name2[1]) && name2[0].matches("[0-9]+(\\.[0-9]+){1,2}")){
-                    if (lastVersion == null || Version.compareString(name2[0], lastVersion) > 0) lastVersion = name2[0];
+                Optional<String> candidate = MoreReleaseTags.version(name.get(), "fabric", mcVersion);
+                if (candidate.isPresent() && (lastVersion == null || Version.compareString(candidate.get(), lastVersion) > 0)) {
+                    lastVersion = candidate.get();
                 }
             }
             {
@@ -155,10 +109,10 @@ public class UpdateChecker {
             }
         }
         if(lastVersion != null && isNewer(lastVersion, modVersion)){
-            LOGGER.debug("Quick Shulker has a update available!");
+            LOGGER.debug("QuickShulkerMore has a update available!");
             return new UpdateInfo(modVersion, lastVersion);
         }
-        LOGGER.debug("Quick Shulker is up to date.");
+        LOGGER.debug("QuickShulkerMore is up to date.");
         return null;
     }
 
@@ -192,7 +146,7 @@ public class UpdateChecker {
     }
 
     public static ExecutorService createCheckUpdateExecutor(){
-        return Executors.newSingleThreadExecutor(r -> new Thread(r, "Quick Shulker Update Checker"));
+        return Executors.newSingleThreadExecutor(r -> new Thread(r, "QuickShulkerMore Update Checker"));
     }
 
     public static class UpdateInfo {

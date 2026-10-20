@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "quickshulker",
+  "version": "${version}",
+  "name": "QuickShulkerMore",
+  "description": "QuickShulkerMore: portable containers, workstations and optional AMS compatibility. Replaces QuickShulker; do not install both.",
+  "authors": [
+    "kyrptonaught",
+    "MoRanpcy",
+    "Hao_cen",
+    "Grayer0113"
+  ],
+  "contact": {
+    "homepage": "https://github.com/halfkite/quickshulker",
+    "sources": "https://github.com/halfkite/quickshulker",
+    "issues": "https://github.com/halfkite/quickshulker/issues"
+  },
+  "custom": {
+    "modmenu": {
+      "links": {
+        "modmenu.homepage": "https://github.com/halfkite/quickshulker",
+        "modmenu.sources": "https://github.com/halfkite/quickshulker"
+      }
+    }
+  },
+  "license": "MIT",
+  "icon": "assets/quickshulker/icon.png",
+  "environment": "*",
+  "mixins": [
+    {
+      "config": "quickshulker.mixins.json",
+      "environment": "*"
+    },
+    {
+      "config": "quickshulker-compat.mixins.json",
+      "environment": "*"
+    },
+    {
+      "config": "shulkerutils.mixins.json",
+      "environment": "client"
+    },
+    {
+      "config": "kyrptconfig.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "entrypoints": {
+    "main": [
+      "net.kyrptonaught.quickshulker.QuickShulkerMod"
+    ],
+    "quickshulker": [
+      "net.kyrptonaught.quickshulker.QuickShulkerMod"
+    ],
+    "client": [
+      "net.kyrptonaught.quickshulker.client.QuickShulkerModClient"
+    ],
+    "modmenu": [
+      "net.kyrptonaught.quickshulker.compat.modmenu.ModMenuIntegration"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "fabric-api": "*",
+    "java": ">=25",
+    "minecraft": "26.1"
+  },
+  "accessWidener": "quickshulker.accesswidener"
+}

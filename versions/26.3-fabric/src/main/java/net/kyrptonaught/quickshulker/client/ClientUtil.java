@@ -19,9 +19,12 @@ public class ClientUtil {
     public static boolean CheckAndSend(ItemStack stack, int slot, boolean external) {
         if (Util.isOpenableItem(stack)) {
             if (net.kyrptonaught.quickshulker.container.PortableContainers.supports(stack)
-                && !net.kyrptonaught.quickshulker.container.PortableContainers.allowed(Minecraft.getInstance().player)) return false;
+                && !net.kyrptonaught.quickshulker.container.PortableContainers.allowed(Minecraft.getInstance().player, stack)) return false;
             if (external || net.kyrptonaught.quickshulker.container.PortableContainers.supports(stack)) {
                 if (!net.kyrptonaught.quickshulker.network.OpenContainerShulkerPacket.canSend()) return false;
+                var kind = net.kyrptonaught.quickshulker.container.PortableContainers.kind(stack);
+                if (kind != null && net.kyrptonaught.quickshulker.container.PortableContainers.custom(kind)
+                    && !net.kyrptonaught.quickshulker.container.PortableContainers.hasDetailedPolicy()) return false;
                 net.kyrptonaught.quickshulker.network.OpenContainerShulkerPacket.sendOpenPacket(Minecraft.getInstance().player.containerMenu.containerId, slot);
                 return true;
             }

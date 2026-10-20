@@ -78,7 +78,7 @@ public class Util {
             player.sendMessage(net.minecraft.text.Text.literal("QuickShulker: unsupported shulker capacity; contents preserved."), true);
             return;
         }
-        if (PortableContainers.supports(stack) && !PortableContainers.allowed(player)) {
+        if (PortableContainers.supports(stack) && !PortableContainers.allowed(player, stack)) {
             player.sendMessage(net.minecraft.text.Text.translatable("quickshulker.container.denied"), true);
             return;
         }
@@ -93,8 +93,10 @@ public class Util {
             openedContainer.setUsedSlot(playerInvIndex);
             openedContainer.setSourceSlot(player, sourceInventory, sourceInventorySlot, stack);
             for (Slot slot : player.currentScreenHandler.slots) {
-                if (slot.inventory instanceof net.kyrptonaught.shulkerutils.ItemStackInventory contents)
+                if (slot.inventory instanceof net.kyrptonaught.shulkerutils.ItemStackInventory contents) {
+                    contents.bindSourceSession(openedContainer);
                     contents.setWriteAllowed(() -> openedContainer.isSourceValid(player));
+                }
             }
             if (qsData != null && QuickShulkerMod.getConfig().playSound) playSound(player, qsData.getSound(stack, true));
             player.currentScreenHandler.addListener(forceCloseScreenIfNotPresent(player, sourceInventory, sourceInventorySlot, stack));

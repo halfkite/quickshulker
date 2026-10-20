@@ -29,6 +29,11 @@ public class QuickShulkerModClient implements ClientModInitializer {
         KeyBindingRegister.register();
         MenuScreens.registerMenuScreens();
         UpdateChecker.register();
+        ClientPlayNetworking.registerGlobalReceiver(net.kyrptonaught.quickshulker.network.PortableMenuEnvelope.ID,
+            // Fabric already dispatches on the client thread; nested execute reorders menu packets.
+            (payload, context) -> net.kyrptonaught.quickshulker.gui.MenuTypes.preparePortableMenu(payload.kind()));
+        ClientPlayNetworking.registerGlobalReceiver(net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.ID,
+            (payload, context) -> context.client().execute(() -> net.kyrptonaught.quickshulker.container.PortableContainers.setDetailedPolicy(payload)));
         ClientPlayNetworking.registerGlobalReceiver(net.kyrptonaught.quickshulker.network.ContainerPolicyPacket.ID,
             (payload, context) -> context.client().execute(() -> net.kyrptonaught.quickshulker.container.PortableContainers.setRemotePolicy(payload)));
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register(

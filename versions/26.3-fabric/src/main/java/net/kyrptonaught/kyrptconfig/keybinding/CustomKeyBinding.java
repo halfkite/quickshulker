@@ -70,7 +70,7 @@ public class CustomKeyBinding implements CustomSerializable {
             return unknownIsActivated; // Always pressed for empty or explicitly "key.keyboard.unknown"
         boolean pressed;
         if (parsedKey.getType() == InputConstants.Type.MOUSE)
-            pressed = 1 << (parsedKey.getValue() - 1) == SDLMouse.SDL_GetMouseState(null, null);
+            pressed = MouseButtonState.isPressed(SDLMouse.SDL_GetMouseState(null, null), parsedKey.getValue());
         else
             pressed = InputConstants.isKeyDown(parsedKey.getValue());
         return pressed;

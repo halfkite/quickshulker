@@ -16,6 +16,7 @@ public record ContainerPolicyPacket(boolean enabled, boolean creativeOnly) imple
         buf -> new ContainerPolicyPacket(buf.readBoolean(), buf.readBoolean()));
     public static void register(RegisterPayloadHandlersEvent event) { event.registrar("1").optional().playToClient(ID, CODEC); }
     public static void send(ServerPlayer player) {
+        DetailedContainerPolicyPacket.send(player);
         if (player.connection.hasChannel(ID)) PacketDistributor.sendToPlayer(player,
             new ContainerPolicyPacket(QuickShulker.getConfig().quickContainers,
                 QuickShulker.getConfig().quickContainersCreativeOnly));

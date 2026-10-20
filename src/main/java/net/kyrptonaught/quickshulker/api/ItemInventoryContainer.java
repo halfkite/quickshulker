@@ -30,7 +30,8 @@ public interface ItemInventoryContainer {
     }
 
     default boolean isSourceSlot(Inventory inventory, int inventorySlot) {
-        return getSourceInventory() == inventory && getSourceInventorySlot() == inventorySlot;
+        return (getSourceInventory() == inventory && getSourceInventorySlot() == inventorySlot)
+            || (getSourceInventory() instanceof net.kyrptonaught.shulkerutils.ItemStackInventory parent && parent.isProtectedSource(inventory,inventorySlot));
     }
 
     default boolean isSourceValid(PlayerEntity player) {
@@ -40,7 +41,7 @@ public interface ItemInventoryContainer {
                 && source.getStack(getSourceInventorySlot()) == stack && !stack.isEmpty()
                 && Util.isOpenableItem(stack) && source.canPlayerUse(player)
                 && (!net.kyrptonaught.quickshulker.container.PortableContainers.supports(stack)
-                    || net.kyrptonaught.quickshulker.container.PortableContainers.allowed(player));
+                    || net.kyrptonaught.quickshulker.container.PortableContainers.allowed(player, stack));
     }
 
 }

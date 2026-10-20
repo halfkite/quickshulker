@@ -42,6 +42,9 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
         config.load();
         net.kyrptonaught.quickshulker.command.QuickShulkerCommands.register();
         net.kyrptonaught.quickshulker.network.ContainerPolicyPacket.register();
+        net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.register();
+        net.kyrptonaught.quickshulker.network.ContainerPolicyUpdatePacket.register();
+        net.kyrptonaught.quickshulker.network.PortableMenuEnvelope.register();
         OpenShulkerPacket.registerReceivePacket();
         OpenContainerShulkerPacket.registerReceivePacket();
         QuickBundlePacket.registerReceivePacket();
@@ -49,8 +52,12 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
 
         UseItemCallback.EVENT.register((player, world, hand) -> {
             ItemStack stack = player.getStackInHand(hand);
+            if(stack.getItem() instanceof net.minecraft.item.BundleItem &&
+                (world.isClient ? !net.kyrptonaught.quickshulker.container.PortableContainers.hasDetailedPolicy() :
+                    !(player instanceof net.minecraft.server.network.ServerPlayerEntity sp) || !net.kyrptonaught.quickshulker.network.PortableMenuEnvelope.canSend(sp)))
+                return TypedActionResult.pass(stack);
             if (net.kyrptonaught.quickshulker.container.PortableContainers.supports(stack)) {
-                if (!net.kyrptonaught.quickshulker.container.PortableContainers.allowed(player)) return TypedActionResult.pass(stack);
+                if (!net.kyrptonaught.quickshulker.container.PortableContainers.allowed(player, stack)) return TypedActionResult.pass(stack);
                 if (world.isClient() && !OpenContainerShulkerPacket.canSend()) return TypedActionResult.pass(stack);
             }
             if (QuickShulkerMod.getConfig().rightClickToOpen) {
@@ -81,6 +88,18 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
 
     @Override
     public void registerProviders() {
+        if(getConfig().quickBundle)
+            new QuickOpenableRegistry.Builder().setItem(net.minecraft.item.BundleItem.class)
+                .setOpenAction((player,stack)->{
+                    if(!(player instanceof net.minecraft.server.network.ServerPlayerEntity server) || !net.kyrptonaught.quickshulker.network.PortableMenuEnvelope.canSend(server))return;
+                    if(stack.getOrDefault(DataComponentTypes.BUNDLE_CONTENTS,net.minecraft.component.type.BundleContentsComponent.DEFAULT).size()>64)return;
+                    if(stack.getOrDefault(DataComponentTypes.BUNDLE_CONTENTS,net.minecraft.component.type.BundleContentsComponent.DEFAULT).stream().anyMatch(s->s.getItem() instanceof net.minecraft.item.BundleItem)){
+                        player.sendMessage(Text.translatable("quickshulker.bundle.nested"),true);return;
+                    }
+                    net.kyrptonaught.quickshulker.network.PortableMenuEnvelope.prepareBundle(server);
+                    player.openHandledScreen(new SimpleNamedScreenHandlerFactory((id,inv,opener)->
+                        new net.kyrptonaught.quickshulker.container.PortableBundleMenu(id,inv,new net.kyrptonaught.quickshulker.container.PortableBundleInventory(stack)),stack.getName()));
+                }).register();
         if (getConfig().quickShulkerBox)
             new QuickOpenableRegistry.Builder()
                     .setItem(ShulkerBoxBlock.class)
@@ -115,6 +134,11 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
                     .setOpenAction(((player, stack) -> player.openHandledScreen(new SimpleNamedScreenHandlerFactory((i, playerInventory, playerEntity) ->
                             new StonecutterScreenHandler(i, playerInventory, ScreenHandlerContext.create(player.getEntityWorld(), player.getBlockPos())), Text.translatable("container.stonecutter")))))
                     .register();
+
+        if (getConfig().quickLoom)
+            new QuickOpenableRegistry.Builder().setItem(LoomBlock.class).ignoreSingleStackCheck(true)
+                .setOpenAction((player, stack) -> player.openHandledScreen(new SimpleNamedScreenHandlerFactory((id, inv, opener) ->
+                    new LoomScreenHandler(id, inv, ScreenHandlerContext.create(player.getWorld(), player.getBlockPos())), Text.translatable("container.loom")))).register();
 
         if(getConfig().quickAnvil)
             new QuickOpenableRegistry.Builder()

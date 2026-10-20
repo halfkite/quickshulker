@@ -49,7 +49,9 @@ public class QuickShulker {
         modEventBus.register(OpenShulkerPacket.class);
         modEventBus.register(net.kyrptonaught.quickshulker.network.OpenContainerShulkerPacket.class);
         modEventBus.addListener(net.kyrptonaught.quickshulker.network.ContainerPolicyPacket::register);
-        NeoForge.EVENT_BUS.addListener(net.kyrptonaught.quickshulker.command.QuickShulkerCommands::register);
+        modEventBus.addListener(net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket::register);
+        modEventBus.addListener(net.kyrptonaught.quickshulker.network.ContainerPolicyUpdatePacket::register);
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.RegisterCommandsEvent event) -> net.kyrptonaught.quickshulker.command.QuickShulkerCommands.register(event));
         modEventBus.register(QuickBundlePacket.class);
         MenuTypes.MENU_TYPES.register(modEventBus);
 
@@ -68,7 +70,7 @@ public class QuickShulker {
         Player player = event.getEntity();
         ItemStack stack = player.getItemInHand(event.getHand());
         if (net.kyrptonaught.quickshulker.container.PortableContainers.supports(stack)) {
-            if (!net.kyrptonaught.quickshulker.container.PortableContainers.allowed(player)) return;
+            if (!net.kyrptonaught.quickshulker.container.PortableContainers.allowed(player, stack)) return;
             if (event.getLevel().isClientSide() && !net.kyrptonaught.quickshulker.network.OpenContainerShulkerPacket.canSend()) return;
         }
         if(getConfig().rightClickToOpen){
@@ -135,6 +137,12 @@ public class QuickShulker {
                         .setOpenAction(((player, stack) -> player.openMenu(new SimpleMenuProvider((i, playerInventory, playerEntity) ->
                                 new StonecutterMenu(i, playerInventory, ContainerLevelAccess.create(player.level(), player.blockPosition())), Component.translatable("container.stonecutter")))))
                         .register();
+
+        if (getConfig().quickLoom)
+            new QuickOpenableRegistry.Builder().setItem(LoomBlock.class).ignoreSingleStackCheck(true)
+                .setOpenAction((player, stack) -> player.openMenu(new SimpleMenuProvider((id, inv, opener) ->
+                    new LoomMenu(id, inv, ContainerLevelAccess.create(player.level(), player.blockPosition())),
+                    Component.translatable("container.loom")))).register();
 
         if (getConfig().quickGrindstone)
             new QuickOpenableRegistry.Builder().setItem(GrindstoneBlock.class)

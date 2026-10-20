@@ -1,0 +1,71 @@
+package net.kyrptonaught.quickshulker.client;
+
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.loader.api.FabricLoader;
+import net.kyrptonaught.kyrptconfig.keybinding.CustomKeyBinding;
+import net.kyrptonaught.quickshulker.QuickShulkerMod;
+import net.kyrptonaught.quickshulker.event.KeyBindingRegister;
+import net.kyrptonaught.quickshulker.event.ModKeyCallback;
+import net.kyrptonaught.quickshulker.util.EnderChestSyncHandler;
+import net.kyrptonaught.quickshulker.api.RegisterQuickShulkerClient;
+import net.kyrptonaught.quickshulker.network.EnderChestS2CSyncPacket;
+import net.kyrptonaught.quickshulker.network.OpenInventoryPacket;
+import net.kyrptonaught.quickshulker.util.update.UpdateChecker;
+import net.minecraft.client.gui.screen.ingame.InventoryScreen;
+import net.minecraft.inventory.EnderChestInventory;
+
+@Environment(EnvType.CLIENT)
+public class QuickShulkerModClient implements ClientModInitializer {
+
+    @Override
+    public void onInitializeClient() {
+        net.minecraft.client.gui.screen.ingame.HandledScreens.register(net.kyrptonaught.quickshulker.gui.LegacyBundleMenus.BUNDLE_ITEM, net.kyrptonaught.quickshulker.gui.screen.PortableBundleScreen::new);
+        ClientPlayNetworking.registerGlobalReceiver(net.kyrptonaught.quickshulker.network.ContainerPolicyPacket.ID,
+            (payload, context) -> context.client().execute(() ->
+                net.kyrptonaught.quickshulker.container.PortableContainers.setRemotePolicy(payload)));
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) ->
+            net.kyrptonaught.quickshulker.container.PortableContainers.setRemotePolicy(null));
+        ClientPlayNetworking.registerGlobalReceiver(net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.ID,
+            (payload,context)->context.client().execute(()->net.kyrptonaught.quickshulker.container.PortableContainers.setDetailedPolicy(payload)));
+        ClientPlayNetworking.registerGlobalReceiver(net.kyrptonaught.quickshulker.network.PortableMenuEnvelope.ID,
+            // Fabric already dispatches on the client thread; nested execute reorders menu packets.
+            (payload,context)->net.kyrptonaught.quickshulker.network.PortableMenuEnvelope.prepareClient(payload.kind()));
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register(
+            (handler,client)->net.kyrptonaught.quickshulker.container.PortableContainers.setRemotePolicy(null));
+        ClientTickEvents.START_WORLD_TICK.register(ModKeyCallback::onKeyPressed);
+        KeyBindingRegister.register();
+        UpdateChecker.register();
+
+        PayloadTypeRegistry.playC2S().register(OpenInventoryPacket.OPEN_INV_ID, OpenInventoryPacket.CODEC);
+        ClientPlayNetworking.registerGlobalReceiver(OpenInventoryPacket.OPEN_INV_ID, (payload, context) -> {
+            context.client().setScreen(new InventoryScreen(context.player()));
+        });
+
+        PayloadTypeRegistry.playC2S().register(EnderChestS2CSyncPacket.S2CEChestContentPacket.S2C_ECHEST_CONTENT_PACKET_ID, EnderChestS2CSyncPacket.S2CEChestContentPacket.CODEC);
+        ClientPlayNetworking.registerGlobalReceiver(EnderChestS2CSyncPacket.S2CEChestContentPacket.S2C_ECHEST_CONTENT_PACKET_ID, (payload, context) -> {
+            context.client().execute(() -> {
+                EnderChestSyncHandler.setEnderChestContent(context.player(), payload.itemStacks());
+            });
+        });
+
+        PayloadTypeRegistry.playC2S().register(EnderChestS2CSyncPacket.S2CEChestSlotPacket.S2C_ECHEST_SLOT_PACKET_ID, EnderChestS2CSyncPacket.S2CEChestSlotPacket.CODEC);
+        ClientPlayNetworking.registerGlobalReceiver(EnderChestS2CSyncPacket.S2CEChestSlotPacket.S2C_ECHEST_SLOT_PACKET_ID, (payload, context) -> {
+            context.client().execute(() -> {
+                EnderChestInventory enderChestInventory = context.player().getEnderChestInventory();
+                // safeguard against mods only changing ender chest size on one side
+                if(payload.slotId() >= 0 && payload.slotId() < enderChestInventory.size()) enderChestInventory.setStack(payload.slotId(), payload.itemStack());
+            });
+        });
+
+        FabricLoader.getInstance().getEntrypoints(QuickShulkerMod.MOD_ID + "_client", RegisterQuickShulkerClient.class).forEach(RegisterQuickShulkerClient::registerClient);
+    }
+
+    public static CustomKeyBinding getKeybinding() {
+        return QuickShulkerMod.getConfig().keybinding;
+    }
+}

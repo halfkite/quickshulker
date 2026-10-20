@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('26.3', '1.21.1')][string]$Version = '26.3',
+    [string]$Version = '26.3',
     [ValidateSet('fabric', 'neoforge')][string]$Loader = 'fabric',
     [string]$JavaHome = $env:JAVA_HOME,
     [string[]]$Tasks = @('build'),

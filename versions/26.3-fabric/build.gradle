@@ -8,16 +8,42 @@ base {
 }
 
 version = "${mod_version}-${minecraft_version}"
+def officialBuild = providers.environmentVariable('GITHUB_ACTIONS').map { it == 'true' }.getOrElse(false) ||
+    providers.gradleProperty('officialBuild').map { it.toBoolean() }.getOrElse(false)
+def testTimestamp = providers.gradleProperty('buildTimestamp').getOrElse(
+    new Date().format('yyyyMMdd-HHmmss', TimeZone.getTimeZone('Asia/Hong_Kong')))
+if (!(testTimestamp ==~ /\d{8}-\d{6}/)) throw new GradleException('buildTimestamp must be yyyyMMdd-HHmmss')
+tasks.withType(AbstractArchiveTask).configureEach {
+    archiveVersion = officialBuild ? project.version.toString() : "${project.version}-test-${testTimestamp}"
+}
+tasks.register('printArtifactName') {
+    doLast { println("ARTIFACT_FILE=" + tasks.named('jar').get().archiveFile.get().asFile.absolutePath) }
+}
 group = project.maven_group
 
+sourceSets {
+    amsApi { java.srcDir 'src/amsApi/java' }
+    upstreamWire { java.srcDir 'src/upstreamWire/java' }
+}
+sourceSets.upstreamWire.compileClasspath = sourceSets.main.compileClasspath + sourceSets.main.output
+sourceSets.test.compileClasspath += sourceSets.upstreamWire.output
+sourceSets.test.runtimeClasspath += sourceSets.upstreamWire.output
+dependencies { compileOnly sourceSets.amsApi.output }
 
 loom {
 	accessWidenerPath = file("src/main/resources/quickshulker.accesswidener")
     mods {
         quickshulker { sourceSet sourceSets.main }
-        quickshulkerRegression { sourceSet sourceSets.test }
+        quickshulkerRegression { sourceSet sourceSets.test; sourceSet sourceSets.upstreamWire }
     }
     runs {
+        worldRegression {
+            server()
+            source sourceSets.test
+            vmArg '-Dfabric-api.gametest'
+            vmArg '-Dfabric-api.gametest.report-file=reports/world-tests.xml'
+            runDir 'build/world-regression-run'
+        }
         regression {
             server()
             source sourceSets.test
@@ -103,5 +129,14 @@ publishing {
 }
 tasks.register('regressionTest') { dependsOn tasks.named('runRegression') }
 check.dependsOn regressionTest
+tasks.register('worldRegressionTest') { dependsOn tasks.named('runWorldRegression') }
+check.dependsOn worldRegressionTest
 // The tests run through Fabric/Knot above, not a JUnit discovery engine.
-tasks.named('test') { failOnNoDiscoveredTests = false }
+tasks.named('test') {
+    dependsOn regressionTest, worldRegressionTest
+    failOnNoDiscoveredTests = false
+}
+
+
+// Keep optional API signatures out of every distributable and runtime.
+tasks.named('compileUpstreamWireJava') { dependsOn tasks.named('classes') }

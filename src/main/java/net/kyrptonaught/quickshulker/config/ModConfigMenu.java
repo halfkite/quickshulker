@@ -14,7 +14,7 @@ public class ModConfigMenu {
         ConfigOptions options = QuickShulkerMod.getConfig();
 
         ConfigScreen configScreen = new ConfigScreen(screen, Text.translatable("key.quickshulker.config.category.title"));
-        configScreen.setSavingEvent(() -> QuickShulkerMod.config.save());
+        configScreen.setSavingEvent(ContainerConfigClient::saved);
 
         ConfigSection activationSection = new ConfigSection(configScreen, Text.translatable("key.quickshulker.config.category.activation"));
         activationSection.addConfigItem(new KeybindItem(Text.translatable("key.quickshulker.config.keybinding"), options.keybinding.rawKey, ConfigOptions.defualtKeybind).setSaveConsumer(value -> options.keybinding.setRaw(value)));
@@ -38,8 +38,6 @@ public class ModConfigMenu {
         subItem.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.supportsMouseDragged"), options.supportsMouseDragged, true).setSaveConsumer(value -> options.supportsMouseDragged = value));
 
         ConfigSection enabledSection = new ConfigSection(configScreen, Text.translatable("key.quickshulker.config.category.enabled"));
-        enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickContainers"), options.quickContainers, true).setSaveConsumer(value -> options.quickContainers = value));
-        enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickContainersCreativeOnly"), options.quickContainersCreativeOnly, true).setSaveConsumer(value -> options.quickContainersCreativeOnly = value));
         enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickShulkerBox"), options.quickShulkerBox, true).setSaveConsumer(value -> options.quickShulkerBox = value).setRequiresRestart());
         enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickCraftingTable"), options.quickCraftingTables, true).setSaveConsumer(value -> options.quickCraftingTables = value).setRequiresRestart());
         enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickStonecutter"), options.quickStonecutter, true).setSaveConsumer(value -> options.quickStonecutter = value).setRequiresRestart());
@@ -49,6 +47,13 @@ public class ModConfigMenu {
         enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickSmithingTable"), options.quickSmithingTable, true).setSaveConsumer(value -> options.quickSmithingTable = value).setRequiresRestart());
         enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickCartographyTable"), options.quickCartographyTable, true).setSaveConsumer(value -> options.quickCartographyTable = value).setRequiresRestart());
 
+        enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickLoom"),options.quickLoom,true).setSaveConsumer(v->options.quickLoom=v).setRequiresRestart());
+        ConfigSection containers=new ConfigSection(configScreen,Text.translatable("quickshulker.config.containers"));
+        containers.addConfigItem(new ContainerModeItem(options));
+        for(ContainerKind kind:ContainerKind.values())
+            containers.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config."+kind.key),kind.enabled(options),true)
+                .setSaveConsumer(v->kind.set(options,v)).setToolTip(Text.translatable("quickshulker.config.server_policy")));
+        enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickBundle"),options.quickBundle,true).setSaveConsumer(v->options.quickBundle=v).setRequiresRestart());
         return configScreen;
     }
 }

@@ -78,7 +78,7 @@ public class Util {
             player.sendOverlayMessage(net.minecraft.network.chat.Component.literal("QuickShulker: unsupported shulker capacity; contents preserved."));
             return;
         }
-        if (PortableContainers.supports(stack) && !PortableContainers.allowed(player)) {
+        if (PortableContainers.supports(stack) && !PortableContainers.allowed(player, stack)) {
             player.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("quickshulker.container.denied"));
             return;
         }

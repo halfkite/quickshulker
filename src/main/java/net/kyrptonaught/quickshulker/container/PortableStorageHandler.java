@@ -32,8 +32,8 @@ public final class PortableStorageHandler extends ScreenHandler {
                     return index < layout.storageSlots() && Arrays.stream(disabled).noneMatch(x -> x == index);
                 }
                 @Override public boolean canInsert(ItemStack stack) {
-                    // Do not allow recursive nesting of this host type or editing padding slots.
-                    return active() && stack.getItem() != host.getItem()
+                    // Protect this exact host; other containers of the same item type are valid storage.
+                    return active() && stack != host
                         && (!net.kyrptonaught.shulkerutils.ShulkerUtils.isShulkerItem(host)
                             || !net.kyrptonaught.shulkerutils.ShulkerUtils.isShulkerItem(stack));
                 }

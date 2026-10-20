@@ -69,18 +69,53 @@ public final class ContainerRegressionTest {
         check(!PortableContainers.supports(new ItemStack(Items.STONE)), "Noncontainers are rejected");
         var playerInventory = new net.minecraft.world.entity.player.Inventory(null, new net.minecraft.world.entity.EntityEquipment());
         ItemStack pot = new ItemStack(Items.DECORATED_POT);
-        var potMenu = new net.kyrptonaught.quickshulker.container.PortableStorageHandler(1, playerInventory, pot, PortableContainers.layout(pot));
+        var potMenu = new net.kyrptonaught.quickshulker.container.CompactStorageMenu(1, playerInventory, new ItemStackInventory(pot, 1), 1);
+        check(potMenu.slots.size() == 37 && potMenu.storageSlots() == 1, "Pot exposes only one real slot plus player inventory");
         check(potMenu.getSlot(0).mayPlace(new ItemStack(Items.DIAMOND)), "Pot storage accepts items");
-        check(!potMenu.getSlot(1).mayPlace(new ItemStack(Items.DIAMOND)), "Padding slots reject insertion");
-        check(!potMenu.getSlot(1).mayPickup(null), "Padding slots reject extraction");
-        ItemStack crafter = new ItemStack(Items.CRAFTER);
-        var nbt = new net.minecraft.nbt.CompoundTag();
-        nbt.putIntArray("disabled_slots", new int[]{4});
-        crafter.set(DataComponents.BLOCK_ENTITY_DATA, net.minecraft.world.item.component.TypedEntityData.of(net.minecraft.world.level.block.entity.BlockEntityTypes.CRAFTER, nbt));
-        var crafterMenu = new net.kyrptonaught.quickshulker.container.PortableStorageHandler(2, playerInventory, crafter, PortableContainers.layout(crafter));
-        check(!crafterMenu.getSlot(4).mayPlace(new ItemStack(Items.STONE)), "Crafter disabled slots remain disabled");
-        check(crafterMenu.getSlot(3).mayPlace(new ItemStack(Items.STONE)), "Other crafter slots remain usable");
-        check(crafter.get(DataComponents.BLOCK_ENTITY_DATA).copyTagWithoutId().getIntArray("disabled_slots").orElse(new int[0])[0] == 4, "Crafter metadata preserved");
+        var shelfMenu = new net.kyrptonaught.quickshulker.container.CompactStorageMenu(2, playerInventory, 3);
+        check(shelfMenu.slots.size() == 39 && shelfMenu.storageSlots() == 3, "Shelf exposes three real slots without hopper padding");
+        check(PortableContainers.layout(new ItemStack(Items.FURNACE)).storageSlots() == 3
+            && PortableContainers.layout(new ItemStack(Items.FURNACE)).type() == net.minecraft.world.inventory.MenuType.FURNACE, "Furnace uses native three-slot layout");
+        check(PortableContainers.layout(new ItemStack(Items.BLAST_FURNACE)).type() == net.minecraft.world.inventory.MenuType.BLAST_FURNACE, "Blast furnace is not a hopper");
+        check(PortableContainers.layout(new ItemStack(Items.SMOKER)).type() == net.minecraft.world.inventory.MenuType.SMOKER, "Smoker is not a hopper");
+        check(PortableContainers.layout(new ItemStack(Items.BREWING_STAND)).type() == net.minecraft.world.inventory.MenuType.BREWING_STAND, "Brewing slots use native semantics");
+        for (var block : net.minecraft.world.level.block.Blocks.COPPER_CHEST.asList())
+            check(PortableContainers.kind(new ItemStack(block)) == net.kyrptonaught.quickshulker.config.ContainerKind.COPPER_CHEST, "Every oxidation and wax variant is supported");
+        int shelves = 0;
+        for (var block : net.minecraft.core.registries.BuiltInRegistries.BLOCK)
+            if (block instanceof net.minecraft.world.level.block.ShelfBlock) {
+                shelves++;
+                check(PortableContainers.kind(new ItemStack(block)) == net.kyrptonaught.quickshulker.config.ContainerKind.SHELF, "Every shelf wood type is supported");
+            }
+        check(shelves >= 13, "All 26.3 shelf variants covered");
+        var defaults = new net.kyrptonaught.quickshulker.config.ConfigOptions();
+        check(defaults.quickContainers && defaults.quickContainersCreativeOnly, "Master defaults to creative-only");
+        check(defaults.quickLoom, "Loom defaults to survival-accessible workstation");
+        for (var kind : net.kyrptonaught.quickshulker.config.ContainerKind.values()) {
+            check(kind.enabled(defaults), "Every container child defaults on");
+            kind.set(defaults, false);
+            check(!kind.enabled(defaults) && (net.kyrptonaught.quickshulker.config.ContainerKind.mask(defaults) & kind.bit()) == 0, "Each child is individually toggleable");
+            kind.set(defaults, true);
+        }
+        net.kyrptonaught.quickshulker.config.ContainerKind.applyMask(defaults, 0);
+        check(net.kyrptonaught.quickshulker.config.ContainerKind.mask(defaults) == 0, "All child policies can be disabled");
+        net.kyrptonaught.quickshulker.config.ContainerKind.applyMask(defaults, net.kyrptonaught.quickshulker.config.ContainerKind.allMask());
+        check(net.kyrptonaught.quickshulker.config.ContainerKind.mask(defaults) == net.kyrptonaught.quickshulker.config.ContainerKind.allMask(), "Policy mask round trip");
+        var policyBuffer = new FriendlyByteBuf(Unpooled.buffer());
+        net.kyrptonaught.quickshulker.network.ContainerPolicyPacket.CODEC.encode(policyBuffer, new net.kyrptonaught.quickshulker.network.ContainerPolicyPacket(true, true));
+        check(policyBuffer.readableBytes() == 2, "Legacy policy remains exactly two bytes");
+        policyBuffer.clear();
+        var detailed = new net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket(true, false, 73);
+        net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.CODEC.encode(policyBuffer, detailed);
+        check(policyBuffer.readableBytes() == 6 && net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.CODEC.decode(policyBuffer).equals(detailed), "Versioned policy round trip");
+        check(!net.kyrptonaught.quickshulker.network.ContainerPolicyPacket.ID.equals(net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.ID), "Old and new policies have separate channels");
+        policyBuffer.release();
+        var originalInventory = java.util.List.of(new ItemStack(Items.OAK_PLANKS, 63), ItemStack.EMPTY);
+        var planned = net.kyrptonaught.quickshulker.container.PortableCrafterMenu.planInsert(originalInventory, java.util.List.of(new ItemStack(Items.OAK_PLANKS, 4)), i -> false);
+        check(planned.get(0).getCount() == 64 && planned.get(1).getCount() == 3, "Craft output merges then uses empty slots");
+        check(originalInventory.get(0).getCount() == 63 && originalInventory.get(1).isEmpty(), "Reservation does not mutate caller stacks");
+        check(net.kyrptonaught.quickshulker.container.PortableCrafterMenu.planInsert(originalInventory, java.util.List.of(new ItemStack(Items.OAK_PLANKS, 4)), i -> i == 1) == null, "Locked source slots are never output destinations");
+        check(net.kyrptonaught.quickshulker.container.PortableCrafterMenu.planInsert(java.util.List.of(ItemStack.EMPTY), java.util.List.of(new ItemStack(Items.CAKE), new ItemStack(Items.BUCKET, 3)), i -> false) == null, "Space must also exist for all crafting remainders");
         var source = new net.minecraft.world.SimpleContainer(1);
         source.setItem(0, shulker);
         var largeMenu = new net.kyrptonaught.quickshulker.container.PortableStorageHandler(3, playerInventory, shulker,
@@ -101,6 +136,31 @@ public final class ContainerRegressionTest {
         tracked.setSourceSlot(null, outerContents, 0, shulker);
         check(tracked.isSourceSlot(outerSource, 0), "A nested menu also locks the outer host slot against shift moves");
         check(!tracked.isSourceSlot(outerSource, 1), "Ancestor protection does not lock unrelated slots");
-        System.out.println("QuickShulker regression checks passed: " + checks);
+        // Exercise the persisted 26.3 format, not just an in-memory disabled-slot tag.
+        var crafterItem = new ItemStack(Items.CRAFTER);
+        var crafterTag = new net.minecraft.nbt.CompoundTag();
+        crafterTag.putIntArray("disabled_slots", new int[]{4});
+        crafterItem.set(DataComponents.BLOCK_ENTITY_DATA, net.minecraft.world.item.component.TypedEntityData.of(
+            net.minecraft.world.level.block.entity.BlockEntityTypes.CRAFTER, crafterTag));
+        var ops = lookup.createSerializationContext(net.minecraft.nbt.NbtOps.INSTANCE);
+        var encodedCrafter = ItemStack.CODEC.encodeStart(ops, crafterItem).getOrThrow();
+        var decodedCrafter = ItemStack.CODEC.parse(ops, encodedCrafter).getOrThrow();
+        var restoredData = decodedCrafter.get(DataComponents.BLOCK_ENTITY_DATA);
+        check(restoredData != null && restoredData.type() == net.minecraft.world.level.block.entity.BlockEntityTypes.CRAFTER,
+            "Crafter entity type survives real item serialization");
+        check(restoredData.copyTagWithoutId().getIntArray("disabled_slots").orElseThrow()[0] == 4,
+            "Crafter locked slots survive real item serialization");
+        check(ItemStack.isSameItemSameComponents(crafterItem, decodedCrafter),
+            "Crafter item components round trip without alteration");
+        checks += MixedWireRegression.run();
+        check(net.kyrptonaught.kyrptconfig.keybinding.MouseButtonState.isPressed(1, 1), "SDL left button is detected");
+        check(net.kyrptonaught.kyrptconfig.keybinding.MouseButtonState.isPressed(5, 3), "Right button stays pressed while left is held");
+        check(!net.kyrptonaught.kyrptconfig.keybinding.MouseButtonState.isPressed(1, 3), "Other buttons do not activate right");
+        check(!net.kyrptonaught.kyrptconfig.keybinding.MouseButtonState.isPressed(0, 3), "Released mouse does not activate binding");
+        check(!net.kyrptonaught.kyrptconfig.keybinding.MouseButtonState.isPressed(-1, 0), "Zero is not an SDL button ID");
+        check(!net.kyrptonaught.kyrptconfig.keybinding.MouseButtonState.isPressed(-1, Integer.SIZE + 1), "Invalid shifts cannot wrap to another button");
+        check(net.kyrptonaught.kyrptconfig.keybinding.MouseButtonState.isPressed(Integer.MIN_VALUE, Integer.SIZE), "Highest mask bit is supported");
+        check(!net.kyrptonaught.kyrptconfig.keybinding.MouseButtonState.isPressed(-1, -1), "Negative button IDs are rejected");
+        System.out.println("QuickShulkerMore regression checks passed: " + checks);
     }
 }

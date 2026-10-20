@@ -42,16 +42,19 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
         config.load();
         net.kyrptonaught.quickshulker.command.QuickShulkerCommands.register();
         net.kyrptonaught.quickshulker.network.ContainerPolicyPacket.register();
+        net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.register();
+        net.kyrptonaught.quickshulker.network.PortableMenuEnvelope.register();
+        net.kyrptonaught.quickshulker.network.ContainerPolicyUpdatePacket.register();
         net.kyrptonaught.quickshulker.network.OpenContainerShulkerPacket.registerReceivePacket();
         OpenShulkerPacket.registerReceivePacket();
         QuickBundlePacket.registerReceivePacket();
         EventListeners.registerEventListeners();
-        if(getConfig().quickBundle) MenuTypes.registerMenuTypes();
+        MenuTypes.registerMenuTypes();
 
         UseItemCallback.EVENT.register((player, level, hand) -> {
             ItemStack stack = player.getItemInHand(hand);
             if (net.kyrptonaught.quickshulker.container.PortableContainers.supports(stack)) {
-                if (!net.kyrptonaught.quickshulker.container.PortableContainers.allowed(player)) return InteractionResult.PASS;
+                if (!net.kyrptonaught.quickshulker.container.PortableContainers.allowed(player, stack)) return InteractionResult.PASS;
                 if (level.isClientSide() && !net.kyrptonaught.quickshulker.network.OpenContainerShulkerPacket.canSend()) return InteractionResult.PASS;
             }
             if (QuickShulkerMod.getConfig().rightClickToOpen) {
@@ -144,6 +147,12 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
                     .setOpenAction((playerEntity, stack) -> playerEntity.openMenu(new SimpleMenuProvider((i, playerInventory, player) ->
                             new BundleItemMenu(i, playerInventory, new BundleContainer(stack, 64)), stack.getComponents().has(DataComponents.CUSTOM_NAME) ? stack.getHoverName() : Component.translatable("item.minecraft.bundle"))))
                     .register();
+
+        if (getConfig().quickLoom)
+            new QuickOpenableRegistry.Builder().setItem(LoomBlock.class).ignoreSingleStackCheck(true)
+                .setOpenAction((player, stack) -> player.openMenu(new SimpleMenuProvider((id, inv, opener) ->
+                    new LoomMenu(id, inv, ContainerLevelAccess.create(player.level(), player.blockPosition())),
+                    Component.translatable("container.loom")))).register();
 
         if(getConfig().quickAnvil)
             new QuickOpenableRegistry.Builder()

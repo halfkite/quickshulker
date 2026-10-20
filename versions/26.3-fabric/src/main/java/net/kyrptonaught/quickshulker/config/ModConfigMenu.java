@@ -14,7 +14,7 @@ public class ModConfigMenu {
         ConfigOptions options = QuickShulkerMod.getConfig();
 
         ConfigScreen configScreen = new ConfigScreen(screen, Component.translatable("key.quickshulker.config.category.title"));
-        configScreen.setSavingEvent(() -> QuickShulkerMod.config.save());
+        configScreen.setSavingEvent(ContainerConfigClient::saved);
 
         ConfigSection activationSection = new ConfigSection(configScreen, Component.translatable("key.quickshulker.config.category.activation"));
         activationSection.addConfigItem(new KeybindItem(Component.translatable("key.quickshulker.config.keybinding"), options.keybinding.rawKey, ConfigOptions.defualtKeybind).setSaveConsumer(value -> options.keybinding.setRaw(value)));
@@ -45,11 +45,16 @@ public class ModConfigMenu {
         enabledSection.addConfigItem(new BooleanItem(Component.translatable("key.quickshulker.config.quickAnvil"), options.quickAnvil, true).setSaveConsumer(value -> options.quickAnvil = value).setRequiresRestart());
 
         enabledSection.addConfigItem(new BooleanItem(Component.translatable("key.quickshulker.config.rightClickContainerShulker"), options.rightClickContainerShulker, true).setSaveConsumer(value -> options.rightClickContainerShulker = value));
-        enabledSection.addConfigItem(new BooleanItem(Component.translatable("key.quickshulker.config.quickContainers"), options.quickContainers, true).setSaveConsumer(value -> options.quickContainers = value));
-        enabledSection.addConfigItem(new BooleanItem(Component.translatable("key.quickshulker.config.quickContainersCreativeOnly"), options.quickContainersCreativeOnly, true).setSaveConsumer(value -> options.quickContainersCreativeOnly = value));
+
         enabledSection.addConfigItem(new BooleanItem(Component.translatable("key.quickshulker.config.quickGrindstone"), options.quickGrindstone, true).setSaveConsumer(value -> options.quickGrindstone = value).setRequiresRestart());
         enabledSection.addConfigItem(new BooleanItem(Component.translatable("key.quickshulker.config.quickSmithingTable"), options.quickSmithingTable, true).setSaveConsumer(value -> options.quickSmithingTable = value).setRequiresRestart());
         enabledSection.addConfigItem(new BooleanItem(Component.translatable("key.quickshulker.config.quickCartographyTable"), options.quickCartographyTable, true).setSaveConsumer(value -> options.quickCartographyTable = value).setRequiresRestart());
+        enabledSection.addConfigItem(new BooleanItem(Component.translatable("key.quickshulker.config.quickLoom"), options.quickLoom, true).setSaveConsumer(value -> options.quickLoom = value).setRequiresRestart());
+        ConfigSection containers = new ConfigSection(configScreen, Component.translatable("quickshulker.config.containers"));
+        containers.addConfigItem(new ContainerModeItem(options));
+        for (ContainerKind kind : ContainerKind.values())
+            containers.addConfigItem(new BooleanItem(Component.translatable("key.quickshulker.config." + kind.key), kind.enabled(options), true)
+                .setSaveConsumer(value -> kind.set(options, value)).setToolTip(Component.translatable("quickshulker.config.server_policy")));
         return configScreen;
     }
 }

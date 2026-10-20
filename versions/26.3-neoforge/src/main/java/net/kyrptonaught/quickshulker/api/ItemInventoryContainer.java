@@ -42,7 +42,7 @@ public interface ItemInventoryContainer {
                 && source.getItem(getSourceInventorySlot()) == stack && !stack.isEmpty()
                 && Util.isOpenableItem(stack) && source.stillValid(player)
                 && (!net.kyrptonaught.quickshulker.container.PortableContainers.supports(stack)
-                    || net.kyrptonaught.quickshulker.container.PortableContainers.allowed(player));
+                    || net.kyrptonaught.quickshulker.container.PortableContainers.allowed(player, stack));
     }
 
 }

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "quickshulker",
   "version": "${version}",
-  "name": "Quick Shulker",
+  "name": "QuickShulkerMore",
   "description": "Quickly open Shulker boxes and more",
   "authors": [
     "kyrptonaught",
@@ -11,15 +11,15 @@
     "Grayer0113"
   ],
   "contact": {
-    "homepage": "https://github.com/moranpcy/quickshulker",
-    "sources": "https://github.com/moranpcy/quickshulker",
-    "issues": "https://github.com/moranpcy/quickshulker/issues"
+    "homepage": "https://github.com/halfkite/quickshulker",
+    "sources": "https://github.com/halfkite/quickshulker",
+    "issues": "https://github.com/halfkite/quickshulker/issues"
   },
   "custom": {
     "modmenu": {
       "links": {
-        "modmenu.homepage": "https://www.curseforge.com/minecraft/mc-mods/quick-shulker",
-        "modmenu.sources": "https://github.com/kyrptonaught/quickshulker"
+        "modmenu.homepage": "https://github.com/halfkite/quickshulker",
+        "modmenu.sources": "https://github.com/halfkite/quickshulker"
       }
     }
   },
@@ -59,6 +59,7 @@
     ]
   },
   "depends": {
+    "minecraft": "1.21.1",
     "fabricloader": ">=0.12.5",
     "fabric-api": "*",
     "java": ">=21"

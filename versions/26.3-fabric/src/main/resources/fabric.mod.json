@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "id": "quickshulker",
   "version": "${version}",
-  "name": "Quick Shulker",
-  "description": "Quickly open Shulker boxes and more",
+  "name": "QuickShulkerMore",
+  "description": "QuickShulkerMore: portable containers, workstations and optional AMS compatibility. Replaces QuickShulker; do not install both.",
   "authors": [
     "kyrptonaught",
     "MoRanpcy",
@@ -18,8 +18,8 @@
   "custom": {
     "modmenu": {
       "links": {
-        "modmenu.homepage": "https://www.curseforge.com/minecraft/mc-mods/quick-shulker",
-        "modmenu.sources": "https://github.com/kyrptonaught/quickshulker"
+        "modmenu.homepage": "https://github.com/halfkite/quickshulker",
+        "modmenu.sources": "https://github.com/halfkite/quickshulker"
       }
     }
   },
@@ -61,7 +61,8 @@
   "depends": {
     "fabricloader": ">=0.18.4",
     "fabric-api": "*",
-    "java": ">=25"
+    "java": ">=25",
+    "minecraft": "26.3"
   },
   "accessWidener": "quickshulker.accesswidener"
 }

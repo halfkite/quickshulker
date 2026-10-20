@@ -29,6 +29,14 @@ public class QuickShulkerModClient implements ClientModInitializer {
                 net.kyrptonaught.quickshulker.container.PortableContainers.setRemotePolicy(payload)));
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) ->
             net.kyrptonaught.quickshulker.container.PortableContainers.setRemotePolicy(null));
+        ClientPlayNetworking.registerGlobalReceiver(net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.ID,
+            (payload,context)->context.client().execute(()->net.kyrptonaught.quickshulker.container.PortableContainers.setDetailedPolicy(payload)));
+        ClientPlayNetworking.registerGlobalReceiver(net.kyrptonaught.quickshulker.network.PortableMenuEnvelope.ID,
+            // Fabric already dispatches this callback on the client thread. Re-queueing it
+            // puts the envelope after OpenScreen/content packets in the reentrant executor.
+            (payload,context)->net.kyrptonaught.quickshulker.network.PortableMenuEnvelope.prepareClient(payload.kind()));
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register(
+            (handler,client)->net.kyrptonaught.quickshulker.container.PortableContainers.setRemotePolicy(null));
         ClientTickEvents.START_WORLD_TICK.register(ModKeyCallback::onKeyPressed);
         KeyBindingRegister.register();
         UpdateChecker.register();
