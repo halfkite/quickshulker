@@ -1,11 +1,29 @@
 name: Build QuickShulkerMore Fabric
 
 on:
+  workflow_call:
+    inputs:
+      targets:
+        description: 'all-fabric or a comma-separated list of exact target IDs'
+        required: false
+        type: string
+        default: all-fabric
+    outputs:
+      targets:
+        description: 'Resolved Fabric target IDs as a JSON array'
+        value: ${{ jobs.prepare.outputs.targets }}
   workflow_dispatch:
+    inputs:
+      targets:
+        description: 'all-fabric or a comma-separated list, such as 26.3-fabric,1.21.1-fabric'
+        required: false
+        type: string
+        default: all-fabric
   push:
     paths:
       - 'src/**'
       - 'versions/**'
+      - 'scripts/python/**'
       - 'build.gradle'
       - 'settings.gradle'
       - 'gradle.properties'
@@ -14,83 +32,88 @@ on:
       - 'build.ps1'
       - 'development.json'
       - '.github/workflows/build-fabric.yml'
+      - '.github/workflows/release.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'versions/**'
+      - 'scripts/python/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - 'gradle/**'
+      - 'gradlew'
+      - 'build.ps1'
+      - 'development.json'
+      - '.github/workflows/build-fabric.yml'
+      - '.github/workflows/release.yml'
 
 permissions:
   contents: read
 
 jobs:
-  fabric:
+  prepare:
+    name: Resolve Fabric build targets
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.targets.outputs.matrix }}
+      targets: ${{ steps.targets.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create the version matrix from development.json
+        id: targets
+        shell: bash
+        env:
+          TARGET_SELECTION: ${{ inputs.targets || 'all-fabric' }}
+        run: |
+          set -euo pipefail
+          python scripts/python/build_targets.py matrix \
+            --repo-root . \
+            --targets "$TARGET_SELECTION" \
+            --github-output "$GITHUB_OUTPUT"
+
+  build:
+    name: Minecraft ${{ matrix.minecraft }} Fabric
+    needs: prepare
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       max-parallel: 2
-      matrix:
-        include:
-          - minecraft: '26.3'
-            project: versions/26.3-fabric
-            java: '25'
-          - minecraft: '26.1'
-            project: versions/26.1-fabric
-            java: '25'
-          - minecraft: '26.2'
-            project: versions/26.2-fabric
-            java: '25'
-          - minecraft: '1.21'
-            project: versions/1.21-fabric
-            java: '21'
-          - minecraft: '1.21.1'
-            project: .
-            java: '21'
-          - minecraft: '1.21.2'
-            project: versions/1.21.2-fabric
-            java: '21'
-          - minecraft: '1.21.3'
-            project: versions/1.21.3-fabric
-            java: '21'
-          - minecraft: '1.21.4'
-            project: versions/1.21.4-fabric
-            java: '21'
-          - minecraft: '1.21.5'
-            project: versions/1.21.5-fabric
-            java: '21'
-          - minecraft: '1.21.6'
-            project: versions/1.21.6-fabric
-            java: '21'
-          - minecraft: '1.21.7'
-            project: versions/1.21.7-fabric
-            java: '21'
-          - minecraft: '1.21.8'
-            project: versions/1.21.8-fabric
-            java: '21'
-          - minecraft: '1.21.9'
-            project: versions/1.21.9-fabric
-            java: '21'
-          - minecraft: '1.21.10'
-            project: versions/1.21.10-fabric
-            java: '21'
-          - minecraft: '1.21.11'
-            project: versions/1.21.11-fabric
-            java: '21'
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: ${{ matrix.java }}
-      - name: Build and run regressions (official filename)
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build and run regressions without a test timestamp
         working-directory: ${{ matrix.project }}
+        shell: bash
         run: bash ./gradlew build printArtifactName -PofficialBuild=true --console=plain --no-daemon
-      - name: Verify clean filename and record checksum
-        working-directory: ${{ matrix.project }}
+      - name: Normalize the distributable filename and record SHA-256
         env:
-          MC_VERSION: ${{ matrix.minecraft }}
+          TARGET_KEY: ${{ matrix.target }}
+          COMMIT_SHA: ${{ github.sha }}
+          WORKFLOW_NAME: ${{ github.workflow }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        shell: bash
         run: |
-          test -f "build/libs/quickshulkermore-1.0.0-${MC_VERSION}.jar"
-          sha256sum "build/libs/quickshulkermore-1.0.0-${MC_VERSION}.jar" > "build/libs/quickshulkermore-1.0.0-${MC_VERSION}.jar.sha256"
+          set -euo pipefail
+          python scripts/python/package_fabric_build.py stage \
+            --repo-root . \
+            --target "$TARGET_KEY" \
+            --output-dir "$RUNNER_TEMP/quickshulkermore-artifacts" \
+            --commit "$COMMIT_SHA" \
+            --workflow "$WORKFLOW_NAME" \
+            --run-id "$RUN_ID" \
+            --run-attempt "$RUN_ATTEMPT" \
+            --build-command 'bash ./gradlew build printArtifactName -PofficialBuild=true --console=plain --no-daemon'
       - uses: actions/upload-artifact@v4
         with:
-          name: quickshulkermore-fabric-1.0.0-${{ matrix.minecraft }}
+          name: quickshulkermore-build-${{ matrix.target }}
           if-no-files-found: error
-          path: |
-            ${{ matrix.project }}/build/libs/quickshulkermore-1.0.0-${{ matrix.minecraft }}.jar
-            ${{ matrix.project }}/build/libs/quickshulkermore-1.0.0-${{ matrix.minecraft }}.jar.sha256
+          path: ${{ runner.temp }}/quickshulkermore-artifacts
+          retention-days: 14

@@ -1,0 +1,161 @@
+name: Release QuickShulkerMore
+run-name: Build and publish ${{ github.event.release.tag_name }}
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: quickshulkermore-release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate release tag and supported targets
+    if: ${{ github.event.release.prerelease == false }}
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+      targets: ${{ steps.release.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate that the release version matches all Fabric targets
+        id: release
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          python scripts/python/build_targets.py validate-release \
+            --repo-root . \
+            --tag "$RELEASE_TAG" \
+            --github-output "$GITHUB_OUTPUT"
+
+  build:
+    name: Build every documented Fabric target
+    needs: validate
+    if: ${{ needs.validate.result == 'success' }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/build-fabric.yml
+    with:
+      targets: all-fabric
+
+  package:
+    name: Verify and package release JARs
+    needs: [validate, build]
+    if: ${{ needs.validate.result == 'success' && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: quickshulkermore-build-*
+          path: release-assets
+          merge-multiple: true
+      - name: Verify target coverage, metadata, commit, and checksums
+        shell: bash
+        env:
+          TARGETS_JSON: ${{ needs.validate.outputs.targets }}
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python scripts/python/package_fabric_build.py verify-release \
+            --repo-root . \
+            --artifact-dir release-assets \
+            --targets-json "$TARGETS_JSON" \
+            --version "$RELEASE_VERSION" \
+            --commit "$COMMIT_SHA"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quickshulkermore-release-package-${{ needs.validate.outputs.tag }}
+          path: release-assets
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-github:
+    name: Attach JARs and checksums to GitHub Release
+    needs: [validate, package]
+    if: ${{ needs.validate.result == 'success' && needs.package.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: quickshulkermore-release-package-${{ needs.validate.outputs.tag }}
+          path: release-assets
+      - name: Upload validated release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(release-assets/*.jar release-assets/*.jar.sha256 release-assets/build-manifest-*.json release-assets/release-manifest.json)
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo 'No verified release assets were found.' >&2
+            exit 1
+          fi
+          gh release upload "$RELEASE_TAG" "${files[@]}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
+  upload-123pan:
+    name: Upload verified JARs to 123pan
+    needs: [validate, package, publish-github]
+    if: ${{ needs.validate.result == 'success' && needs.package.result == 'success' && needs.publish-github.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: quickshulkermore-release-package-${{ needs.validate.outputs.tag }}
+          path: release-assets
+      - name: Install rclone
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes rclone
+      - name: Upload and verify the release folder in 123pan
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+          WEBDAV_USER: ${{ secrets.PAN123_WEBDAV_USERNAME }}
+          WEBDAV_PASSWORD: ${{ secrets.PAN123_WEBDAV_PASSWORD }}
+          RCLONE_CONFIG_WEBDAV123_TYPE: webdav
+          RCLONE_CONFIG_WEBDAV123_URL: https://webdav.123pan.cn/webdav
+          RCLONE_CONFIG_WEBDAV123_VENDOR: other
+        run: |
+          set -euo pipefail
+          if [[ -z "$WEBDAV_USER" || -z "$WEBDAV_PASSWORD" ]]; then
+            echo 'Configure PAN123_WEBDAV_USERNAME and PAN123_WEBDAV_PASSWORD repository secrets.' >&2
+            exit 1
+          fi
+          shopt -s nullglob
+          jars=(release-assets/*.jar)
+          if [[ ${#jars[@]} -eq 0 ]]; then
+            echo 'The verified release package contains no JAR files.' >&2
+            exit 1
+          fi
+          export RCLONE_CONFIG_WEBDAV123_USER="$WEBDAV_USER"
+          export RCLONE_CONFIG_WEBDAV123_PASS="$(rclone obscure "$WEBDAV_PASSWORD")"
+          unset WEBDAV_PASSWORD
+          rclone copy release-assets "webdav123:$RELEASE_TAG" \
+            --include '*.jar' \
+            --ignore-times
+          rclone check release-assets "webdav123:$RELEASE_TAG" \
+            --include '*.jar' \
+            --one-way

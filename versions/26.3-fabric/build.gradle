@@ -11,10 +11,14 @@ version = "${mod_version}-${minecraft_version}"
 def officialBuild = providers.environmentVariable('GITHUB_ACTIONS').map { it == 'true' }.getOrElse(false) ||
     providers.gradleProperty('officialBuild').map { it.toBoolean() }.getOrElse(false)
 def testTimestamp = providers.gradleProperty('buildTimestamp').getOrElse(
-    new Date().format('yyyyMMdd-HHmmss', TimeZone.getTimeZone('Asia/Hong_Kong')))
-if (!(testTimestamp ==~ /\d{8}-\d{6}/)) throw new GradleException('buildTimestamp must be yyyyMMdd-HHmmss')
+    new Date().format('yyyyMMddHHmm', TimeZone.getTimeZone('Asia/Hong_Kong')))
+if (!(testTimestamp ==~ /\d{12}/)) throw new GradleException('buildTimestamp must be yyyyMMddHHmm')
 tasks.withType(AbstractArchiveTask).configureEach {
     archiveVersion = officialBuild ? project.version.toString() : "${project.version}-test-${testTimestamp}"
+}
+def distributableName = "${project.archives_base_name}-${project.mod_version}-mc${project.minecraft_version}-fabric"
+tasks.named('jar') {
+    archiveFileName = "${distributableName}${officialBuild ? '' : "-${testTimestamp}"}.jar"
 }
 tasks.register('printArtifactName') {
     doLast { println("ARTIFACT_FILE=" + tasks.named('jar').get().archiveFile.get().asFile.absolutePath) }
