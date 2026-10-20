@@ -12,7 +12,6 @@ public final class MoreReleaseTags {
         int end = tag.length() - suffix.length();
         if (end <= prefix.length()) return Optional.empty();
         String version = tag.substring(prefix.length(), end);
-        return version.matches("[0-9]{1,6}(\\.[0-9]{1,6}){2}(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?")
-            && Version.isValidVersion(version) ? Optional.of(version) : Optional.empty();
+        return version.matches("[0-9]{1,6}(\\.[0-9]{1,6}){2}") ? Optional.of(version) : Optional.empty();
     }
 }

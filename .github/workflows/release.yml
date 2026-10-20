@@ -16,6 +16,7 @@ concurrency:
 jobs:
   validate:
     name: Validate release tag and supported targets
+    if: ${{ github.event.release.prerelease == false }}
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.release.outputs.tag }}

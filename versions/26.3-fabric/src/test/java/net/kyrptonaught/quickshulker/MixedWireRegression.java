@@ -4,7 +4,6 @@ import io.netty.buffer.Unpooled;
 import net.fabricmc.loader.api.FabricLoader;
 import net.kyrptonaught.quickshulker.network.OpenShulkerPacket;
 import net.kyrptonaught.quickshulker.util.update.MoreReleaseTags;
-import net.kyrptonaught.quickshulker.util.update.Version;
 import net.minecraft.network.FriendlyByteBuf;
 
 /** Independent upstream and More codecs. This is wire testing, not a player-login simulation. */
@@ -21,21 +20,14 @@ public final class MixedWireRegression {
         check(metadata.getName().equals("QuickShulkerMore"), "Public name is More");
         String gameVersion = FabricLoader.getInstance().getModContainer("minecraft").orElseThrow()
             .getMetadata().getVersion().getFriendlyString();
-        String modVersion = Version.modVersionForMinecraft(metadata.getVersion().getFriendlyString(), gameVersion).orElse("");
-        check(modVersion.equals("1.0.0-beta"), "More beta version is separated from the actual game version");
-        check(Version.modVersionForMinecraft("1.0.0-" + gameVersion, gameVersion).orElseThrow().equals("1.0.0"), "Stable version parsing remains unchanged");
-        check(Version.modVersionForMinecraft("1.0.0-beta-not-the-game", gameVersion).isEmpty(), "Unmatched game version is rejected");
+        check(metadata.getVersion().getFriendlyString().equals("1.0.0-" + gameVersion), "More version matches the actual game");
         check(QuickShulkerMod.MOD_ID.equals("quickshulker"), "Legacy internal ID preserved");
         check(MoreReleaseTags.version("3.3.0-26.3", "fabric", "26.3").isEmpty(), "Historical 3.x tags cannot prompt an upgrade");
         check(MoreReleaseTags.version("quickshulkermore-fabric-1.0.1-26.3", "fabric", "26.3").orElseThrow().equals("1.0.1"), "More release tag accepted");
-        check(MoreReleaseTags.version("quickshulkermore-fabric-1.0.0-beta-26.3", "fabric", "26.3").orElseThrow().equals("1.0.0-beta"), "Beta release tag accepted");
         check(MoreReleaseTags.version("quickshulkermore-neoforge-1.0.1-26.3", "fabric", "26.3").isEmpty(), "Other loader ignored");
         check(MoreReleaseTags.version("quickshulkermore-fabric-1.0.1-26.2", "fabric", "26.3").isEmpty(), "Other game version ignored");
         check(MoreReleaseTags.version("quickshulkermore-fabric-999999999999.0.0-26.3", "fabric", "26.3").isEmpty(), "Unbounded numeric tags rejected");
         check(MoreReleaseTags.version(null, "fabric", "26.3").isEmpty(), "Missing tag rejected");
-        check(Version.compareString("1.0.0", "1.0.0-beta") > 0, "Stable release sorts after beta");
-        check(Version.compareString("1.0.0-beta.2", "1.0.0-beta.10") < 0, "Numeric beta identifiers sort naturally");
-        check(Version.compareString("1.0.0-alpha", "1.0.0-beta") < 0, "Pre-release labels compare lexically");
         check(net.kyrptonaught.quickshulker.upstreamwire.OpenShulkerPacket.OPEN_SHULKER_PACKET.equals(OpenShulkerPacket.OPEN_SHULKER_PACKET), "Original channel unchanged");
         var originalCodec = net.kyrptonaught.quickshulker.upstreamwire.OpenShulkerPacket.CODEC;
         var buffer = new FriendlyByteBuf(Unpooled.buffer());
