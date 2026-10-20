@@ -73,9 +73,14 @@ public class UpdateChecker {
     private static UpdateInfo checkUpdate0() throws IOException, InterruptedException {
         String url = VERSION_LIST_URL;
         String lastVersion = null;
-        String[] curVersion = CURRENT_VERSION.split("-", 3);
-        String modVersion = curVersion[0];
-        String mcVersion = curVersion[1];
+        String mcVersion = FabricLoader.getInstance().getModContainer("minecraft").orElseThrow()
+            .getMetadata().getVersion().getFriendlyString();
+        Optional<String> currentModVersion = Version.modVersionForMinecraft(CURRENT_VERSION, mcVersion);
+        if (currentModVersion.isEmpty()) {
+            LOGGER.warn("Cannot parse mod version {} for Minecraft {}.", CURRENT_VERSION, mcVersion);
+            return null;
+        }
+        String modVersion = currentModVersion.get();
         while(url != null){
             HttpRequest.Builder request = HttpRequest.newBuilder().GET().uri(URI.create(url));
             HttpResponse<String> response = send(request, HttpResponse.BodyHandlers.ofString());
