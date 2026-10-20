@@ -14,4 +14,4 @@ Local compatibility mode reuses the unmodified official dependency JARs in `../1
 
 On 2026-10-19 the complete build passed, including 68 component/protocol checks and all five mod GameTest groups plus the vanilla control. The first missing-Cloth-Config runtime was rejected; the successful rerun loaded Cloth Config 19.0.147. The installation JAR is `../../mod-builds/20261019-205345/quickshulkermore-1.0.0-1.21.7-test-20261019-205121.jar`, with a SHA-256 manifest and XML test report alongside it.
 
-See `../../docs/1.0.0-fabric-port-progress.md` for detailed results. A build or embedded-player GameTest is not real client UI, mixed-client login or actual AMS joint-runtime verification.
+See `../../docs/testing/1.0.0-fabric-port-progress.md` for detailed results. A build or embedded-player GameTest is not real client UI, mixed-client login or actual AMS joint-runtime verification.

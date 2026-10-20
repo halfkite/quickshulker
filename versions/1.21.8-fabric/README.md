@@ -14,4 +14,4 @@ Local compatibility mode reuses the official, unmodified Mod Menu 15.0.0, Reinfo
 
 The full build passed on 2026-10-19: 68 component/protocol checks and five mod GameTest groups plus the vanilla control. The installation JAR is `../../mod-builds/20261019-205951/quickshulkermore-1.0.0-1.21.8-test-20261019-205415.jar`; its SHA-256 manifest and XML report are saved alongside it. Metadata and test/AMS API signature exclusion were checked. A separate local GITHUB_ACTIONS=true naming check returned `quickshulkermore-1.0.0-1.21.8.jar`; it was not a remote CI run.
 
-Detailed results are recorded in `../../docs/1.0.0-fabric-port-progress.md`. Native server GameTests use embedded players, not real client login or mouse input. Actual AMS joint-runtime, mixed-client login and client GUI behavior are not verified here.
+Detailed results are recorded in `../../docs/testing/1.0.0-fabric-port-progress.md`. Native server GameTests use embedded players, not real client login or mouse input. Actual AMS joint-runtime, mixed-client login and client GUI behavior are not verified here.

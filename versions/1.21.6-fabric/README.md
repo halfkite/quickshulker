@@ -14,4 +14,4 @@ Build from the repository root:
 ./build.ps1 -Version 1.21.6 -JavaHome '<JDK 21>' -Tasks @('build','printArtifactName') -GradleArguments @('-PlocalCompatDependencies=true','--offline','--console=plain','--no-daemon')
 ```
 
-The full build includes component/protocol regression checks and native Fabric server GameTests, including complete crafter item serialization/reopening. Build status and archived installation JAR are recorded in `../../docs/1.0.0-fabric-port-progress.md`; this README alone is not evidence of a passing build. No real 1.21.6 AMS runtime, client UI or mixed-client login has been verified.
+The full build includes component/protocol regression checks and native Fabric server GameTests, including complete crafter item serialization/reopening. Build status and archived installation JAR are recorded in `../../docs/testing/1.0.0-fabric-port-progress.md`; this README alone is not evidence of a passing build. No real 1.21.6 AMS runtime, client UI or mixed-client login has been verified.

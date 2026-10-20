@@ -1,8 +1,8 @@
 # Quick Shulker
 
-> QuickShulkerMore 1.0.0 最新验证：144 项组件/协议检查、4 组真实世界 GameTest 和原版控制测试通过。安装包为 `../../mod-builds/20261020-083211/quickshulkermore-1.0.0-26.3-test-20261020-083114.jar`，附 SHA-256、XML 和组件日志。修复 SDL 组合鼠标键漏判，并以原版常量确定酿造台同步状态数量。真实 AMS 联测、客户端窗口输入及原版/More 混装登录仍未验证；详见 [移植进度](../../docs/1.0.0-fabric-port-progress.md)。
+> QuickShulkerMore 1.0.0 最新验证：144 项组件/协议检查、4 组真实世界 GameTest 和原版控制测试通过。安装包为 `../../mod-builds/20261020-083211/quickshulkermore-1.0.0-26.3-test-20261020-083114.jar`，附 SHA-256、XML 和组件日志。修复 SDL 组合鼠标键漏判，并以原版常量确定酿造台同步状态数量。真实 AMS 联测、客户端窗口输入及原版/More 混装登录仍未验证；详见 [移植进度](../../docs/testing/1.0.0-fabric-port-progress.md)。
 
-> This is the unofficial [halfkite/quickshulker](https://github.com/halfkite/quickshulker) fork of [MoRanpcy/quickshulker](https://github.com/MoRanpcy/quickshulker). Minecraft 26.3 is the primary development version. Fork features, build entrypoints and validation status are documented in the [repository README](../../README.md) and [26.3 validation notes](../../docs/3.2.0-26.3-validation.md). The upstream documentation below is retained for reference.
+> This is the unofficial [halfkite/quickshulkermore](https://github.com/halfkite/quickshulkermore) fork of [MoRanpcy/quickshulker](https://github.com/MoRanpcy/quickshulker). Minecraft 26.3 is the primary development version. Fork features, build entrypoints and validation status are documented in the [repository README](../../README.md) and [26.3 validation notes](../../docs/history/3.2.0-26.3-validation.md). The upstream documentation below is retained for reference.
 
 **English** | [中文](README_CN.md)
 

@@ -11,15 +11,15 @@
     "Grayer0113"
   ],
   "contact": {
-    "homepage": "https://github.com/halfkite/quickshulker",
-    "sources": "https://github.com/halfkite/quickshulker",
-    "issues": "https://github.com/halfkite/quickshulker/issues"
+    "homepage": "https://github.com/halfkite/quickshulkermore",
+    "sources": "https://github.com/halfkite/quickshulkermore",
+    "issues": "https://github.com/halfkite/quickshulkermore/issues"
   },
   "custom": {
     "modmenu": {
       "links": {
-        "modmenu.homepage": "https://github.com/halfkite/quickshulker",
-        "modmenu.sources": "https://github.com/halfkite/quickshulker"
+        "modmenu.homepage": "https://github.com/halfkite/quickshulkermore",
+        "modmenu.sources": "https://github.com/halfkite/quickshulkermore"
       }
     }
   },

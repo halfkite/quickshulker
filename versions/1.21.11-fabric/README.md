@@ -16,4 +16,4 @@ The complete build passed on 2026-10-20: 79 component/protocol checks and seven 
 
 Gradle 9's `test` task depends on both actual Fabric test runners. Empty JUnit discovery is expected because these are not JUnit classes; a component/GameTest failure still fails the build. Local compatibility mode additionally needs the original datafixerupper 9.0.19 and netty-codec-http 4.2.7.Final POM/JAR mirror under `libs/official-maven/`, working around this host's TLS/cache-origin failures. Its JAR checksums were verified against the official Minecraft manifest. Default Maven mode does not use that local mirror.
 
-Full results are recorded in `../../docs/1.0.0-fabric-port-progress.md`. Client GUI/mixed-client login and actual 1.21.11 AMS joint-runtime are not verified here.
+Full results are recorded in `../../docs/testing/1.0.0-fabric-port-progress.md`. Client GUI/mixed-client login and actual 1.21.11 AMS joint-runtime are not verified here.

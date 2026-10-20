@@ -30,8 +30,8 @@ public class UpdateChecker {
 
     private static final Logger LOGGER = LogManager.getLogger("QuickShulkerMore Update Checker");
     private static final String CURRENT_VERSION = getCurrentVersion();
-    private static final String VERSION_LIST_URL = "https://api.github.com/repos/halfkite/quickshulker/tags?per_page=100";
-    private static final String DOWNLOAD_URL = "https://github.com/halfkite/quickshulker/releases";
+    private static final String VERSION_LIST_URL = "https://api.github.com/repos/halfkite/quickshulkermore/tags?per_page=100";
+    private static final String DOWNLOAD_URL = "https://github.com/halfkite/quickshulkermore/releases";
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder().executor(Util.nonCriticalIoPool()).connectTimeout(Duration.ofSeconds(5)).build();
     private static UpdateInfo updateInfo;
 
