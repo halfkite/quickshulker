@@ -22,6 +22,22 @@ allprojects {
         project.sourceSets.test.runtimeClasspath = project.sourceSets.test.runtimeClasspath.minus(project.sourceSets.main.output)
         def repo = project.projectDir
         while (repo != null && !new File(repo, 'development.json').isFile()) repo = repo.parentFile
+        // A reused GameTest world retains its old spawn while TestServer selects a
+        // new test area. Mock login then waits for the unloaded old spawn chunks.
+        // Isolate each invocation instead of sharing persisted worlds/configuration.
+        def runRoot = new File(project.layout.buildDirectory.get().asFile, 'compatibility-runs/' + UUID.randomUUID())
+        def worldReport = new File(project.layout.buildDirectory.get().asFile, 'world-regression-run/reports/world-tests.xml')
+        project.tasks.named('runWorldRegression') {
+            doFirst {
+                java.nio.file.Files.createDirectories(worldReport.parentFile.toPath())
+                java.nio.file.Files.deleteIfExists(worldReport.toPath())
+            }
+        }
+        ['runRegression': 'regression', 'runWorldRegression': 'worldRegression', 'runCompatibilityClient': 'client'].each { taskName, directory ->
+            project.tasks.matching { it.name == taskName }.configureEach {
+                doFirst { java.nio.file.Files.createDirectories(new File(runRoot, directory).toPath()) }
+            }
+        }
         def clientTests = project.sourceSets.create('compatibilityClient') {
             java.setSrcDirs([new File(repo, 'src/compatibilityClient/java')])
             resources.setSrcDirs([new File(repo, 'src/compatibilityClient/resources')])
@@ -32,14 +48,16 @@ allprojects {
         project.loom.runs.create('compatibilityClient') {
             client()
             source clientTests
-            runDir 'build/compatibility-client-run'
+            runDir project.relativePath(new File(runRoot, 'client'))
             vmArg '-Dquickshulker.compatibility.expectedVersion=' + metadata.version
         }
         project.tasks.named('runCompatibilityClient') { timeout = java.time.Duration.ofMinutes(3) }
         ['regression', 'worldRegression'].each { name ->
             project.loom.runs.named(name) {
+                runDir project.relativePath(new File(runRoot, name))
                 vmArg '-Dquickshulker.compatibility=true'
                 vmArg '-Dquickshulker.compatibility.expectedVersion=' + metadata.version
+                if (name == 'worldRegression') vmArg '-Dfabric-api.gametest.report-file=' + worldReport.absolutePath
             }
         }
     }
