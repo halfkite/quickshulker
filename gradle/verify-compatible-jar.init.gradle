@@ -1,0 +1,46 @@
+import groovy.json.JsonSlurper
+import java.security.MessageDigest
+import java.util.zip.ZipFile
+
+// Run each version's tests against the SAME published binary, remapped by Loom.
+// Main sources are compiled only for the test API; their output is not loaded.
+allprojects {
+    afterEvaluate { project ->
+        def input = project.findProperty('compatibilityJar')
+        if (input == null) throw new GradleException('Pass -PcompatibilityJar=<installable JAR>')
+        def artifact = project.file(input)
+        if (!artifact.isFile()) throw new GradleException("Missing compatibility JAR: $artifact")
+        def metadata
+        new ZipFile(artifact).withCloseable { zip ->
+            metadata = new JsonSlurper().parse(zip.getInputStream(zip.getEntry('fabric.mod.json')))
+        }
+        if (metadata.id != 'quickshulker') throw new GradleException('Not a QuickShulkerMore artifact')
+        println('COMPATIBILITY_SHA256=' + MessageDigest.getInstance('SHA-256').digest(artifact.bytes).encodeHex())
+        project.dependencies.add('modRuntimeOnly', project.files(artifact))
+        def mainMod = project.loom.mods.findByName('quickshulker')
+        if (mainMod != null) project.loom.mods.remove(mainMod)
+        project.sourceSets.test.runtimeClasspath = project.sourceSets.test.runtimeClasspath.minus(project.sourceSets.main.output)
+        def repo = project.projectDir
+        while (repo != null && !new File(repo, 'development.json').isFile()) repo = repo.parentFile
+        def clientTests = project.sourceSets.create('compatibilityClient') {
+            java.setSrcDirs([new File(repo, 'src/compatibilityClient/java')])
+            resources.setSrcDirs([new File(repo, 'src/compatibilityClient/resources')])
+        }
+        clientTests.compileClasspath = project.sourceSets.main.compileClasspath + project.sourceSets.main.output
+        clientTests.runtimeClasspath = clientTests.output + project.sourceSets.main.runtimeClasspath.minus(project.sourceSets.main.output)
+        project.loom.mods.create('quickshulkerCompatibilityClient') { sourceSet clientTests }
+        project.loom.runs.create('compatibilityClient') {
+            client()
+            source clientTests
+            runDir 'build/compatibility-client-run'
+            vmArg '-Dquickshulker.compatibility.expectedVersion=' + metadata.version
+        }
+        project.tasks.named('runCompatibilityClient') { timeout = java.time.Duration.ofMinutes(3) }
+        ['regression', 'worldRegression'].each { name ->
+            project.loom.runs.named(name) {
+                vmArg '-Dquickshulker.compatibility=true'
+                vmArg '-Dquickshulker.compatibility.expectedVersion=' + metadata.version
+            }
+        }
+    }
+}

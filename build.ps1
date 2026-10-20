@@ -8,6 +8,13 @@ param(
 $ErrorActionPreference = 'Stop'
 $metadata = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'development.json') -Raw | ConvertFrom-Json
 $key = "$Version-$Loader"
+if ($Loader -eq 'fabric') {
+    $compatibilityGroup = $metadata.fabricCompatibilityGroups | Where-Object { $_.minecraftVersions -contains $Version } | Select-Object -First 1
+    if ($null -ne $compatibilityGroup) {
+        $key = $compatibilityGroup.buildTarget
+        Write-Host "Minecraft $Version uses shared artifact $($compatibilityGroup.minecraftVersions -join ', ')"
+    }
+}
 $target = $metadata.targets.PSObject.Properties[$key]
 if ($null -eq $target) { throw "Unsupported target: $key" }
 $project = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot $target.Value.project))

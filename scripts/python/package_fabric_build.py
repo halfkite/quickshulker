@@ -9,6 +9,7 @@ import json
 import shutil
 import sys
 import zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +21,7 @@ class ArtifactError(ValueError):
 
 
 def load_target(repo_root: Path, target_key: str) -> tuple[dict[str, Any], dict[str, str]]:
-    matches = [item for item in resolve_targets(repo_root) if item["target"] == target_key]
+    matches = [item for item in resolve_targets(repo_root, grouped=False) if item["target"] == target_key]
     if not matches:
         raise ArtifactError(f"Unknown Fabric target: {target_key}")
     target = matches[0]
@@ -28,7 +29,10 @@ def load_target(repo_root: Path, target_key: str) -> tuple[dict[str, Any], dict[
     if not project.is_absolute():
         project = repo_root / project
     target["project_path"] = project.resolve()
-    return target, read_properties(project / "gradle.properties")
+    properties = read_properties(project / "gradle.properties")
+    properties["artifact_mc_version"] = target["artifact_minecraft"]
+    properties["minecraft_dependency"] = target["minecraft_dependency"]
+    return target, properties
 
 
 def installable_jar(path: Path) -> bool:
@@ -39,16 +43,26 @@ def installable_jar(path: Path) -> bool:
     )
 
 
-def validate_fabric_jar(path: Path) -> None:
+def validate_fabric_jar(path: Path, properties: dict[str, str] | None = None) -> None:
     try:
         with zipfile.ZipFile(path) as archive:
             metadata = json.loads(archive.read("fabric.mod.json").decode("utf-8"))
     except (OSError, KeyError, zipfile.BadZipFile, json.JSONDecodeError) as exc:
         raise ArtifactError(f"Not a valid Fabric mod JAR ({path.name}): {exc}") from exc
+    if not isinstance(metadata, dict):
+        raise ArtifactError(f"JAR {path.name} has invalid mod metadata")
     if metadata.get("id") != "quickshulker":
         raise ArtifactError(
             f"JAR {path.name} has Fabric mod id {metadata.get('id')!r}, expected 'quickshulker'"
         )
+    if properties is not None:
+        expected_version = f"{properties['mod_version']}-{properties['minecraft_version']}"
+        if metadata.get("version") != expected_version:
+            raise ArtifactError(f"JAR {path.name} has version {metadata.get('version')!r}, expected {expected_version!r}")
+        predicate = properties["minecraft_dependency"]
+        dependencies = metadata.get("depends")
+        if not isinstance(dependencies, dict) or dependencies.get("minecraft") != predicate:
+            raise ArtifactError(f"JAR {path.name} must declare Minecraft {predicate!r}")
 
 
 def expected_filename(properties: dict[str, str], loader: str = "fabric") -> str:
@@ -58,7 +72,7 @@ def expected_filename(properties: dict[str, str], loader: str = "fabric") -> str
         raise ArtifactError(f"gradle.properties is missing: {', '.join(missing)}")
     return (
         f"{properties['archives_base_name']}-{properties['mod_version']}-"
-        f"mc{properties['minecraft_version']}-{loader}.jar"
+        f"mc{properties.get('artifact_mc_version', properties['minecraft_version'])}-{loader}.jar"
     )
 
 
@@ -88,7 +102,7 @@ def stage_build(
             f"Expected exactly one installable JAR for {target_key}, found {len(candidates)}"
         )
     source = candidates[0]
-    validate_fabric_jar(source)
+    validate_fabric_jar(source, properties)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     filename = expected_filename(properties)
@@ -103,6 +117,8 @@ def stage_build(
         "mod": properties["archives_base_name"],
         "target": target_key,
         "minecraft_version": properties["minecraft_version"],
+        "minecraft_versions": target["minecraft_versions"],
+        "minecraft_dependency": target["minecraft_dependency"],
         "loader": "fabric",
         "mod_version": properties["mod_version"],
         "artifact": filename,
@@ -132,7 +148,7 @@ def verify_release_package(
     expected_jars: set[str] = set()
     entries: list[dict[str, Any]] = []
     for key in target_keys:
-        _, properties = load_target(repo_root, key)
+        target, properties = load_target(repo_root, key)
         if properties.get("mod_version") != version:
             raise ArtifactError(
                 f"{key} has mod_version={properties.get('mod_version')!r}, expected {version!r}"
@@ -148,7 +164,7 @@ def verify_release_package(
         for required in (jar_path, checksum_path, manifest_path):
             if not required.is_file():
                 raise ArtifactError(f"Missing release artifact: {required.name}")
-        validate_fabric_jar(jar_path)
+        validate_fabric_jar(jar_path, properties)
 
         digest = sha256_file(jar_path)
         checksum_parts = checksum_path.read_text(encoding="ascii").strip().split()
@@ -163,6 +179,7 @@ def verify_release_package(
             {
                 "target": key,
                 "minecraft_version": properties["minecraft_version"],
+                "minecraft_versions": target["minecraft_versions"],
                 "loader": "fabric",
                 "artifact": filename,
                 "sha256": digest,
@@ -189,6 +206,27 @@ def verify_release_package(
     return manifest_path
 
 
+def verify_runtime_report(repo_root: Path, target_key: str, jar: Path, log: Path, world_report: Path) -> dict[str, Any]:
+    anchor = resolve_targets(repo_root, target_key)[0]
+    _, properties = load_target(repo_root, anchor["target"])
+    validate_fabric_jar(jar, properties)
+    digest = sha256_file(jar)
+    output = log.read_text(encoding="utf-8-sig")
+    if f"COMPATIBILITY_SHA256={digest}" not in output:
+        raise ArtifactError("Runtime report did not verify the shared artifact SHA-256")
+    if output.count("external artifact verified:") < 2 or "shared JAR client smoke passed:" not in output:
+        raise ArtifactError("Missing external-artifact verification for server, world, or client tests")
+    try:
+        report = ET.parse(world_report).getroot()
+    except ET.ParseError as exc:
+        raise ArtifactError(f"Invalid world test report: {exc}") from exc
+    cases = report.findall(".//testcase")
+    if not cases or report.findall(".//failure") or report.findall(".//error"):
+        raise ArtifactError("World test report is empty or contains failures")
+    return {"target": target_key, "artifact_target": anchor["target"], "sha256": digest,
+            "world_tests": len(cases), "client_smoke": "passed"}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -210,6 +248,13 @@ def main(argv: list[str] | None = None) -> int:
     verify.add_argument("--version", required=True)
     verify.add_argument("--commit", required=True)
 
+    runtime = subparsers.add_parser("verify-runtime", help="require evidence that the shared binary passed every runtime phase")
+    runtime.add_argument("--repo-root", type=Path, default=Path.cwd())
+    runtime.add_argument("--target", required=True)
+    runtime.add_argument("--jar", type=Path, required=True)
+    runtime.add_argument("--log", type=Path, required=True)
+    runtime.add_argument("--world-report", type=Path, required=True)
+
     args = parser.parse_args(argv)
     try:
         if args.command == "stage":
@@ -224,6 +269,9 @@ def main(argv: list[str] | None = None) -> int:
                 args.build_command,
             )
             print(artifact)
+        elif args.command == "verify-runtime":
+            result = verify_runtime_report(args.repo_root, args.target, args.jar, args.log, args.world_report)
+            print(json.dumps(result, ensure_ascii=False))
         else:
             targets = json.loads(args.targets_json)
             if not isinstance(targets, list) or not all(isinstance(item, str) for item in targets):

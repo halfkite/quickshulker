@@ -7,12 +7,13 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from build_targets import BuildTargetError, resolve_targets, validate_release_tag
+from build_targets import BuildTargetError, resolve_targets, resolve_compatibility_targets, validate_release_tag
 from package_fabric_build import (
     ArtifactError,
     expected_filename,
     stage_build,
     verify_release_package,
+    verify_runtime_report,
 )
 
 
@@ -52,13 +53,25 @@ def make_test_repo(root: Path) -> None:
         (project / "gradlew").write_text("# test wrapper\n", encoding="utf-8")
 
 
-def make_fabric_jar(path: Path, version: str) -> None:
+def make_fabric_jar(path: Path, version: str, predicate: str | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(path, "w") as archive:
         archive.writestr(
             "fabric.mod.json",
-            json.dumps({"id": "quickshulker", "version": version}),
+            json.dumps({"id": "quickshulker", "version": version, "depends": {"minecraft": predicate or version.split("-", 1)[1]}}),
         )
+
+
+def add_test_compatibility_group(root: Path) -> None:
+    config_path = root / "development.json"
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    config["targets"]["1.21-fabric"] = {"project": "versions/1.21-fabric", "java": 21}
+    config["fabricCompatibilityGroups"] = [{"buildTarget": "1.21.1-fabric", "minecraftVersions": ["1.21", "1.21.1"]}]
+    project = root / "versions/1.21-fabric"
+    project.mkdir(parents=True)
+    (project / "gradlew").write_text("# wrapper\n", encoding="utf-8")
+    (project / "gradle.properties").write_text("minecraft_version=1.21\nmod_version=1.0.0\narchives_base_name=quickshulkermore\n", encoding="utf-8")
+    config_path.write_text(json.dumps(config), encoding="utf-8")
 
 
 class BuildTargetTests(unittest.TestCase):
@@ -90,6 +103,38 @@ class BuildTargetTests(unittest.TestCase):
         self.assertEqual(targets[0], "26.3-fabric")
         with self.assertRaises(BuildTargetError):
             validate_release_tag(self.root, "v2.0.0")
+
+    def test_group_builds_once_but_tests_each_runtime_using_same_artifact(self) -> None:
+        add_test_compatibility_group(self.root)
+        targets = resolve_targets(self.root)
+        self.assertEqual(len(targets), 2)
+        shared = resolve_targets(self.root, "1.21-fabric")[0]
+        self.assertEqual(shared["target"], "1.21.1-fabric")
+        self.assertEqual(shared["artifact_minecraft"], "1.21-1.21.1")
+        self.assertEqual(shared["minecraft_dependency"], ">=1.21 <=1.21.1")
+        tests = resolve_compatibility_targets(self.root)
+        self.assertEqual([test["minecraft"] for test in tests], ["1.21", "1.21.1"])
+        self.assertEqual({test["artifact_target"] for test in tests}, {"1.21.1-fabric"})
+
+    def test_rejects_overlapping_or_noncontiguous_groups(self) -> None:
+        add_test_compatibility_group(self.root)
+        path = self.root / "development.json"
+        config = json.loads(path.read_text(encoding="utf-8"))
+        config["fabricCompatibilityGroups"] *= 2
+        path.write_text(json.dumps(config), encoding="utf-8")
+        with self.assertRaises(BuildTargetError):
+            resolve_targets(self.root)
+        config["fabricCompatibilityGroups"] = [{"buildTarget": "1.21.1-fabric", "minecraftVersions": ["1.21", "1.21.2"]}]
+        path.write_text(json.dumps(config), encoding="utf-8")
+        with self.assertRaises(BuildTargetError):
+            resolve_targets(self.root)
+
+    def test_release_tag_also_checks_nonpublishing_runtime_projects(self) -> None:
+        add_test_compatibility_group(self.root)
+        path = self.root / "versions/1.21-fabric/gradle.properties"
+        path.write_text(path.read_text(encoding="utf-8").replace("mod_version=1.0.0", "mod_version=9.0.0"), encoding="utf-8")
+        with self.assertRaises(BuildTargetError):
+            validate_release_tag(self.root, "1.0.0")
 
 
 class ArtifactPackageTests(unittest.TestCase):
@@ -127,6 +172,34 @@ class ArtifactPackageTests(unittest.TestCase):
         )
         self.assertEqual(manifest["commit"], "abc123")
         self.assertEqual(manifest["sha256"], expected_hash)
+
+    def test_range_filename_and_loader_predicate_must_match(self) -> None:
+        add_test_compatibility_group(self.root)
+        source = self.root / "build/libs/shared.jar"
+        make_fabric_jar(source, "1.0.0-1.21.1", ">=1.21 <=1.21.1")
+        artifact = stage_build(self.root, "1.21.1-fabric", self.root / "staged", "abc")
+        self.assertEqual(artifact.name, "quickshulkermore-1.0.0-mc1.21-1.21.1-fabric.jar")
+        make_fabric_jar(source, "1.0.0-1.21.1", "1.21.1")
+        with self.assertRaises(ArtifactError):
+            stage_build(self.root, "1.21.1-fabric", self.root / "staged", "abc")
+
+    def test_runtime_proof_requires_shared_hash_server_world_and_client(self) -> None:
+        jar = self.root / "runtime.jar"
+        make_fabric_jar(jar, "1.0.0-26.3")
+        digest = hashlib.sha256(jar.read_bytes()).hexdigest()
+        proof = f"COMPATIBILITY_SHA256={digest}\nexternal artifact verified:\nexternal artifact verified:\nshared JAR client smoke passed:\n"
+        log = self.root / "runtime.log"
+        log.write_text(proof, encoding="utf-8")
+        report = self.root / "world.xml"
+        report.write_text('<testsuite><testcase name="storage"/></testsuite>', encoding="utf-8")
+        self.assertEqual(verify_runtime_report(self.root, "26.3-fabric", jar, log, report)["world_tests"], 1)
+        log.write_text(proof.replace("shared JAR client smoke passed:", "client never started"), encoding="utf-8")
+        with self.assertRaises(ArtifactError):
+            verify_runtime_report(self.root, "26.3-fabric", jar, log, report)
+        log.write_text(proof, encoding="utf-8")
+        report.write_text('<testsuite/>', encoding="utf-8")
+        with self.assertRaises(ArtifactError):
+            verify_runtime_report(self.root, "26.3-fabric", jar, log, report)
 
     def test_release_verifier_requires_complete_matching_artifact_set(self) -> None:
         staged = self.root / "release-assets"

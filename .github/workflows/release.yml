@@ -111,6 +111,16 @@ jobs:
           gh release upload "$RELEASE_TAG" "${files[@]}" \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
+          # Upload first, then remove superseded single-version JARs and sidecars.
+          existing_assets="$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json assets --jq '.assets[].name')"
+          while IFS= read -r asset; do
+            [[ -n "$asset" ]] || continue
+            if [[ "$asset" != *.jar || ! -f "release-assets/$asset" ]]; then
+              gh release delete-asset "$RELEASE_TAG" "$asset" \
+                --repo "$GITHUB_REPOSITORY" --yes
+            fi
+          done <<< "$existing_assets"
 
   upload-123pan:
     name: Upload verified JARs to 123pan
@@ -153,9 +163,8 @@ jobs:
           export RCLONE_CONFIG_WEBDAV123_USER="$WEBDAV_USER"
           export RCLONE_CONFIG_WEBDAV123_PASS="$(rclone obscure "$WEBDAV_PASSWORD")"
           unset WEBDAV_PASSWORD
-          rclone copy release-assets "webdav123:$RELEASE_TAG" \
+          rclone sync release-assets "webdav123:$RELEASE_TAG" \
             --include '*.jar' \
             --ignore-times
           rclone check release-assets "webdav123:$RELEASE_TAG" \
-            --include '*.jar' \
-            --one-way
+            --include '*.jar'

@@ -10,8 +10,8 @@ version = "${mod_version}-${minecraft_version}"
 group = project.maven_group
 
 def officialBuild = providers.environmentVariable('GITHUB_ACTIONS').map { it == 'true' }.getOrElse(false) || providers.gradleProperty('officialBuild').map { it.toBoolean() }.getOrElse(false)
-def testTimestamp = providers.gradleProperty('buildTimestamp').getOrElse(new Date().format('yyyyMMdd-HHmmss',TimeZone.getTimeZone('Asia/Hong_Kong')))
-if (!(testTimestamp ==~ /\d{8}-\d{6}/)) throw new GradleException('buildTimestamp must be yyyyMMdd-HHmmss')
+def testTimestamp = providers.gradleProperty('buildTimestamp').getOrElse(new Date().format('yyyyMMddHHmm',TimeZone.getTimeZone('Asia/Hong_Kong')))
+if (!(testTimestamp ==~ /\d{12}/)) throw new GradleException('buildTimestamp must be yyyyMMddHHmm')
 tasks.withType(AbstractArchiveTask).configureEach { archiveVersion=officialBuild?project.version.toString():"${project.version}-test-${testTimestamp}" }
 tasks.register('printArtifactName') { doLast { println('ARTIFACT_FILE='+tasks.named('remapJar').get().archiveFile.get().asFile.absolutePath) } }
 // Highest-priority version overrides precede the shared, audited sources.
@@ -177,6 +177,7 @@ publishing {
 }
 
 tasks.named('compileUpstreamWireJava') { dependsOn tasks.named('classes') }
+apply from: file('../../gradle/fabric-compatibility.gradle')
 tasks.register('worldRegressionTest') { dependsOn tasks.named('runWorldRegression') }
 check.dependsOn worldRegressionTest
 

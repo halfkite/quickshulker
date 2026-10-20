@@ -17,6 +17,8 @@ QuickShulkerMore 是 [QuickShulker](https://github.com/MoRanpcy/quickshulker) �
 
 ## 安装使用
 
+兼容区间共用一个 JAR：`1.21–1.21.1`、`1.21.2–1.21.3`、`1.21.6–1.21.8`、`1.21.9–1.21.10`；其余版本分别提供。比如 `quickshulkermore-1.0.0-mc1.21.6-1.21.8-fabric.jar` 可用于文件名区间内的版本。自动构建会用同一份区间 JAR 逐版本运行服务端回归、世界测试和客户端类加载/Mixin 冒烟测试。
+
 - 将 JAR 放入对应实例的 `mods` 文件夹;
 - 客户端服务端安装 `QuickShulkerMore` 与原模组 `QuickShulker` 都可以 正常使用原功能，要使用完整快捷容器功能，请让客户端和服务端安装同版本 `QuickShulkerMore`;
 - 不要同时安装原版 `QuickShulker` 与 `QuickShulkerMore` 因为两者使用相同的内部模组 ID。

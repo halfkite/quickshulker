@@ -144,3 +144,4 @@ tasks.named('test') {
 
 // Keep optional API signatures out of every distributable and runtime.
 tasks.named('compileUpstreamWireJava') { dependsOn tasks.named('classes') }
+apply from: file('../../gradle/fabric-compatibility.gradle')

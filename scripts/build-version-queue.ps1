@@ -10,8 +10,13 @@ $metadata = Get-Content -LiteralPath (Join-Path $root 'development.json') -Raw |
 $reportDir = Join-Path $root ('build/port-queue/' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 New-Item -ItemType Directory -Path $reportDir | Out-Null
 $records = [Collections.Generic.List[object]]::new()
+$builtTargets = [Collections.Generic.HashSet[string]]::new()
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-foreach ($version in $Versions) {
+foreach ($requestedVersion in $Versions) {
+    $group = $metadata.fabricCompatibilityGroups | Where-Object { $_.minecraftVersions -contains $requestedVersion } | Select-Object -First 1
+    $version = if ($group) { $group.buildTarget -replace '-fabric$', '' } else { $requestedVersion }
+    if (!$builtTargets.Add($version)) { continue }
+    $artifactVersion = if ($group) { $group.minecraftVersions[0] + '-' + $group.minecraftVersions[-1] } else { $version }
     $target = $metadata.targets.PSObject.Properties["$version-fabric"].Value
     if ($null -eq $target) { throw "Unknown Fabric target: $version" }
     $project = [IO.Path]::GetFullPath((Join-Path $root $target.project))
@@ -25,7 +30,7 @@ foreach ($version in $Versions) {
         $artifactLine = Get-Content -LiteralPath $log | Where-Object { $_ -like 'ARTIFACT_FILE=*' } | Select-Object -Last 1
         if (!$artifactLine) { throw 'Build did not report an installable artifact' }
         $artifact = $artifactLine.Substring('ARTIFACT_FILE='.Length)
-        $archive = & python $Archiver --artifact $artifact --output-root (Join-Path $root 'mod-builds') --mod-name QuickShulkerMore --game-version $version --build-command $command
+        $archive = & python $Archiver --artifact $artifact --output-root (Join-Path $root 'mod-builds') --mod-name QuickShulkerMore --game-version $artifactVersion --build-command $command
         if ($LASTEXITCODE -ne 0) { throw 'Artifact archiving failed' }
         $archive = [string]($archive | Select-Object -Last 1)
         Copy-Item -LiteralPath $log -Destination (Join-Path $archive 'build.log')

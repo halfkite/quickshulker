@@ -18,6 +18,8 @@ The current mod version is **1.0.0**, with **Minecraft 26.3 / Fabric** as the pr
 
 Fabric source and per-version build targets cover **Minecraft 1.21, 1.21.1–1.21.11, 26.1, 26.2, and 26.3**. Version 26.3 is the primary development target. The 1.21.1 maintenance target lives at the repository root; other versions are under `versions/`.
 
+Compatible releases share one JAR for each of these ranges: **1.21–1.21.1**, **1.21.2–1.21.3**, **1.21.6–1.21.8**, and **1.21.9–1.21.10**. Other versions have individual JARs. For example, `quickshulkermore-1.0.0-mc1.21.6-1.21.8-fabric.jar` covers all three versions in its filename. CI runs server regressions, world tests, and a client class-loading/Mixin smoke test against the same shared binary on every covered runtime.
+
 The repository also contains 26.3 NeoForge source, but the complete 15-version port and regression record for this round covers Fabric. Check the download page and validation notes for the artifact and status matching your loader.
 
 ## Installation

@@ -59,6 +59,8 @@ jobs:
     outputs:
       matrix: ${{ steps.targets.outputs.matrix }}
       targets: ${{ steps.targets.outputs.targets }}
+      compatibility_matrix: ${{ steps.targets.outputs.compatibility_matrix }}
+      has_compatibility: ${{ steps.targets.outputs.has_compatibility }}
     steps:
       - uses: actions/checkout@v4
       - name: Create the version matrix from development.json
@@ -69,6 +71,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
+          python -m unittest discover -s scripts/python -p test_build_pipeline.py
           if [[ -z "$TARGET_SELECTION" ]]; then
             case "$EVENT_NAME" in
               push|pull_request) TARGET_SELECTION="26.3-fabric" ;;
@@ -76,6 +79,10 @@ jobs:
             esac
           fi
           python scripts/python/build_targets.py matrix \
+            --repo-root . \
+            --targets "$TARGET_SELECTION" \
+            --github-output "$GITHUB_OUTPUT"
+          python scripts/python/build_targets.py compatibility-matrix \
             --repo-root . \
             --targets "$TARGET_SELECTION" \
             --github-output "$GITHUB_OUTPUT"
@@ -98,7 +105,12 @@ jobs:
       - name: Build and run regressions without a test timestamp
         working-directory: ${{ matrix.project }}
         shell: bash
-        run: bash ./gradlew build printArtifactName -PofficialBuild=true --console=plain --no-daemon
+        env:
+          BUILD_TASKS: ${{ matrix.build_tasks }}
+        run: |
+          set -euo pipefail
+          read -r -a tasks <<< "$BUILD_TASKS"
+          bash ./gradlew "${tasks[@]}" -PofficialBuild=true --console=plain --no-daemon
       - name: Normalize the distributable filename and record SHA-256
         env:
           TARGET_KEY: ${{ matrix.target }}
@@ -106,6 +118,7 @@ jobs:
           WORKFLOW_NAME: ${{ github.workflow }}
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
+          BUILD_TASKS: ${{ matrix.build_tasks }}
         shell: bash
         run: |
           set -euo pipefail
@@ -117,10 +130,47 @@ jobs:
             --workflow "$WORKFLOW_NAME" \
             --run-id "$RUN_ID" \
             --run-attempt "$RUN_ATTEMPT" \
-            --build-command 'bash ./gradlew build printArtifactName -PofficialBuild=true --console=plain --no-daemon'
+            --build-command "bash ./gradlew $BUILD_TASKS -PofficialBuild=true --console=plain --no-daemon"
       - uses: actions/upload-artifact@v4
         with:
           name: quickshulkermore-build-${{ matrix.target }}
           if-no-files-found: error
           path: ${{ runner.temp }}/quickshulkermore-artifacts
           retention-days: 14
+
+  compatibility:
+    name: Shared JAR on Minecraft ${{ matrix.minecraft }}
+    needs: [prepare, build]
+    if: ${{ needs.prepare.outputs.has_compatibility == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.prepare.outputs.compatibility_matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: quickshulkermore-build-${{ matrix.artifact_target }}
+          path: ${{ runner.temp }}/shared-artifact
+      - name: Run regressions using the shared binary instead of main source output
+        working-directory: ${{ matrix.project }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd "$RUNNER_TEMP/shared-artifact" && sha256sum --check *.jar.sha256)
+          jars=("$RUNNER_TEMP/shared-artifact/"*.jar)
+          [[ ${#jars[@]} -eq 1 ]]
+          xvfb-run -a bash ./gradlew regressionTest worldRegressionTest runCompatibilityClient \
+            -I "$GITHUB_WORKSPACE/gradle/verify-compatible-jar.init.gradle" \
+            "-PcompatibilityJar=${jars[0]}" --console=plain --no-daemon \
+            | tee "$RUNNER_TEMP/compatibility-runtime.log"
+          python "$GITHUB_WORKSPACE/scripts/python/package_fabric_build.py" verify-runtime \
+            --repo-root "$GITHUB_WORKSPACE" --target '${{ matrix.target }}' \
+            --jar "${jars[0]}" --log "$RUNNER_TEMP/compatibility-runtime.log" \
+            --world-report build/world-regression-run/reports/world-tests.xml

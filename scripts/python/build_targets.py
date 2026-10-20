@@ -26,6 +26,36 @@ def read_properties(path: Path) -> dict[str, str]:
     return properties
 
 
+def compatibility_groups(config: dict[str, Any], available: list[str]) -> dict[str, tuple[str, list[str]]]:
+    """Map exact runtime targets to one validated, contiguous publication group."""
+    result: dict[str, tuple[str, list[str]]] = {}
+    groups = config.get("fabricCompatibilityGroups", [])
+    if not isinstance(groups, list):
+        raise BuildTargetError("fabricCompatibilityGroups must be an array")
+    for group in groups:
+        if not isinstance(group, dict):
+            raise BuildTargetError("Each compatibility group must be an object")
+        anchor = group.get("buildTarget")
+        games = group.get("minecraftVersions")
+        if anchor not in available or not isinstance(games, list) or len(games) < 2:
+            raise BuildTargetError(f"Invalid compatibility group: {group!r}")
+        if not all(isinstance(game, str) and re.fullmatch(r"\d+\.\d+(?:\.\d+)?", game) for game in games):
+            raise BuildTargetError(f"Invalid compatibility versions: {games!r}")
+        parts = [tuple(map(int, game.split("."))) for game in games]
+        patches = [part[2] if len(part) == 3 else 0 for part in parts]
+        if (any(part[:2] != parts[0][:2] for part in parts)
+                or any(patch != patches[0] + index for index, patch in enumerate(patches))):
+            raise BuildTargetError(f"Compatibility versions must be contiguous and ordered: {games!r}")
+        members = [f"{game}-fabric" for game in games]
+        if anchor not in members or any(member not in available for member in members):
+            raise BuildTargetError(f"Compatibility group contains missing targets: {group!r}")
+        for member in members:
+            if member in result:
+                raise BuildTargetError(f"Overlapping compatibility groups for {member}")
+            result[member] = (anchor, games)
+    return result
+
+
 def _load_targets(repo_root: Path) -> tuple[dict[str, Any], list[str]]:
     root = repo_root.resolve()
     try:
@@ -77,12 +107,14 @@ def _load_targets(repo_root: Path) -> tuple[dict[str, Any], list[str]]:
                 f"Target key {key!r} does not match minecraft_version={minecraft!r}"
             )
 
+    compatibility_groups(config, ordered_keys)
     return config, ordered_keys
 
 
-def resolve_targets(repo_root: Path, selector: str = "all-fabric") -> list[dict[str, Any]]:
+def resolve_targets(repo_root: Path, selector: str = "all-fabric", *, grouped: bool = True) -> list[dict[str, Any]]:
     config, available = _load_targets(repo_root)
     by_key = config["targets"]
+    groups = compatibility_groups(config, available)
     if selector.strip() in {"all", "all-fabric"}:
         selected = available
     else:
@@ -99,10 +131,15 @@ def resolve_targets(repo_root: Path, selector: str = "all-fabric") -> list[dict[
             )
         selected = requested
 
+    if grouped:
+        selected = list(dict.fromkeys(groups.get(key, (key, []))[0] for key in selected))
     resolved: list[dict[str, Any]] = []
     for key in selected:
         entry = by_key[key]
         project = Path(entry["project"]).as_posix()
+        games = groups.get(key, (key, [key[:-len("-fabric")]]))[1]
+        label = games[0] if len(games) == 1 else f"{games[0]}-{games[-1]}"
+        predicate = games[0] if len(games) == 1 else f">={games[0]} <={games[-1]}"
         resolved.append(
             {
                 "target": key,
@@ -110,9 +147,26 @@ def resolve_targets(repo_root: Path, selector: str = "all-fabric") -> list[dict[
                 "loader": "fabric",
                 "project": project,
                 "java": entry["java"],
+                "artifact_minecraft": label,
+                "minecraft_dependency": predicate,
+                "minecraft_versions": games,
+                "build_tasks": "assemble validateAccessWidener printArtifactName" if len(games) > 1 else "build printArtifactName",
             }
         )
     return resolved
+
+
+def resolve_compatibility_targets(repo_root: Path, selector: str = "all-fabric") -> list[dict[str, Any]]:
+    runtimes = {item["target"]: item for item in resolve_targets(repo_root, grouped=False)}
+    tests = []
+    for artifact in resolve_targets(repo_root, selector):
+        if len(artifact["minecraft_versions"]) == 1:
+            continue
+        for game in artifact["minecraft_versions"]:
+            runtime = dict(runtimes[f"{game}-fabric"])
+            runtime["artifact_target"] = artifact["target"]
+            tests.append(runtime)
+    return tests
 
 
 def validate_release_tag(repo_root: Path, tag: str) -> tuple[str, list[str]]:
@@ -120,7 +174,7 @@ def validate_release_tag(repo_root: Path, tag: str) -> tuple[str, list[str]]:
     if not re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?", normalized):
         raise BuildTargetError(f"Release tag {tag!r} is not a supported version tag")
 
-    targets = resolve_targets(repo_root, "all-fabric")
+    targets = resolve_targets(repo_root, "all-fabric", grouped=False)
     mismatches: list[str] = []
     root = repo_root.resolve()
     for target in targets:
@@ -135,7 +189,7 @@ def validate_release_tag(repo_root: Path, tag: str) -> tuple[str, list[str]]:
             f"Release tag {tag!r} must match mod_version {normalized!r} in every Fabric target: "
             + "; ".join(mismatches)
         )
-    return normalized, [target["target"] for target in targets]
+    return normalized, [target["target"] for target in resolve_targets(repo_root)]
 
 
 def write_outputs(output_path: str | None, values: dict[str, str]) -> None:
@@ -156,6 +210,11 @@ def main(argv: list[str] | None = None) -> int:
     matrix.add_argument("--targets", default="all-fabric")
     matrix.add_argument("--github-output")
 
+    compatibility = subparsers.add_parser("compatibility-matrix", help="test each grouped runtime using one shared binary")
+    compatibility.add_argument("--repo-root", type=Path, default=Path.cwd())
+    compatibility.add_argument("--targets", default="all-fabric")
+    compatibility.add_argument("--github-output")
+
     release = subparsers.add_parser("validate-release", help="validate a release tag")
     release.add_argument("--repo-root", type=Path, default=Path.cwd())
     release.add_argument("--tag", required=True)
@@ -163,11 +222,13 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     try:
-        if args.command == "matrix":
-            targets = resolve_targets(args.repo_root, args.targets)
+        if args.command in {"matrix", "compatibility-matrix"}:
+            targets = (resolve_targets if args.command == "matrix" else resolve_compatibility_targets)(args.repo_root, args.targets)
             matrix_value = json.dumps({"include": targets}, separators=(",", ":"))
             targets_value = json.dumps([item["target"] for item in targets], separators=(",", ":"))
-            write_outputs(args.github_output, {"matrix": matrix_value, "targets": targets_value})
+            outputs = ({"compatibility_matrix": matrix_value, "has_compatibility": str(bool(targets)).lower()}
+                       if args.command == "compatibility-matrix" else {"matrix": matrix_value, "targets": targets_value})
+            write_outputs(args.github_output, outputs)
         else:
             version, targets = validate_release_tag(args.repo_root, args.tag)
             write_outputs(

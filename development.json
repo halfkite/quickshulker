@@ -2,6 +2,12 @@
   "primaryMinecraftVersion": "26.3",
   "defaultLoader": "fabric",
   "entrypoint": "build.ps1",
+  "fabricCompatibilityGroups": [
+    {"buildTarget": "1.21.1-fabric", "minecraftVersions": ["1.21", "1.21.1"]},
+    {"buildTarget": "1.21.3-fabric", "minecraftVersions": ["1.21.2", "1.21.3"]},
+    {"buildTarget": "1.21.8-fabric", "minecraftVersions": ["1.21.6", "1.21.7", "1.21.8"]},
+    {"buildTarget": "1.21.10-fabric", "minecraftVersions": ["1.21.9", "1.21.10"]}
+  ],
   "targets": {
     "26.2-fabric": {"project": "versions/26.2-fabric", "java": 25},
     "26.1-fabric": {"project": "versions/26.1-fabric", "java": 25},
