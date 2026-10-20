@@ -65,9 +65,16 @@ jobs:
         id: targets
         shell: bash
         env:
-          TARGET_SELECTION: ${{ inputs.targets || 'all-fabric' }}
+          TARGET_SELECTION: ${{ inputs.targets }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
+          if [[ -z "$TARGET_SELECTION" ]]; then
+            case "$EVENT_NAME" in
+              push|pull_request) TARGET_SELECTION="26.3-fabric" ;;
+              *) TARGET_SELECTION="all-fabric" ;;
+            esac
+          fi
           python scripts/python/build_targets.py matrix \
             --repo-root . \
             --targets "$TARGET_SELECTION" \
@@ -79,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 4
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4

@@ -104,7 +104,7 @@ dependencies {
 		configurations.configureEach { exclude group: 'org.jetbrains', module: 'annotations' }
 	} else {
 		modImplementation ("curse.maven:reinforced-shulker-boxes-529874:7225066") { exclude group: "net.fabricmc.fabric-api" }
-		modImplementation "atonkish.reinfcore:reinforced-core:4.0.8+1.21.10"
+		modImplementation("atonkish.reinfcore:reinforced-core:4.0.8+1.21.10") { exclude group: "net.fabricmc.fabric-api" }
 	}
 
 	modImplementation include("me.fallenbreath:conditional-mixin-fabric:0.6.4")
