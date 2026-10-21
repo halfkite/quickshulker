@@ -1,0 +1,35 @@
+// Keep repeated GameTests from waiting on a previous run's persisted spawn chunks.
+allprojects {
+    afterEvaluate { project ->
+        def root = new File(project.layout.buildDirectory.get().asFile, 'regression-runs/' + UUID.randomUUID())
+        ['regression', 'worldRegression'].each { name ->
+            def directory = new File(root, name)
+            project.loom.runs.named(name) {
+                runDir project.relativePath(directory)
+                if (name == 'worldRegression') {
+                    vmArg '-Dfabric-api.gametest.report-file=' + project.file('build/world-regression-run/reports/world-tests.xml').absolutePath
+                }
+            }
+            def taskName = name == 'regression' ? 'runRegression' : 'runWorldRegression'
+            project.tasks.named(taskName) {
+                doFirst {
+                    directory.mkdirs()
+                    if (name == 'worldRegression') {
+                        def report = project.file('build/world-regression-run/reports/world-tests.xml')
+                        report.parentFile.mkdirs()
+                        java.nio.file.Files.deleteIfExists(report.toPath())
+                    }
+                }
+            }
+        }
+        // The queue exports this proof alongside the built binary.
+        project.tasks.named('runRegression') {
+            doLast {
+                project.copy {
+                    from new File(root, 'regression/logs/latest.log')
+                    into project.file('build/regression-run/logs')
+                }
+            }
+        }
+    }
+}

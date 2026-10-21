@@ -1,0 +1,50 @@
+// Dedicated socket-login regression. Never added to a distributable source set.
+allprojects {
+    afterEvaluate { project ->
+        def mode = project.findProperty('loginMode') ?: 'plain'
+        if (!(mode in ['server', 'plain', 'more'])) throw new GradleException('Invalid loginMode')
+        def artifact = project.file(project.property('loginArtifact'))
+        if (!artifact.isFile()) throw new GradleException('Missing loginArtifact')
+        def harness = project.sourceSets.create('loginTest')
+        harness.compileClasspath = project.sourceSets.main.compileClasspath + project.sourceSets.main.output
+        harness.runtimeClasspath = harness.output + project.sourceSets.main.runtimeClasspath.minus(project.sourceSets.main.output)
+        project.loom.mods.removeAll { true }
+        project.loom.mods.create('quickshulkerLoginTest') { sourceSet harness }
+        if (mode != 'plain') project.dependencies.add('runtimeOnly', project.files(artifact))
+        def runFolder = project.file('build/login-test/' + mode)
+        project.loom.runs.create('loginTest') {
+            if (mode == 'server') server() else client()
+            source harness
+            runDir project.relativePath(runFolder)
+            vmArg '-Dquickshulker.login.more=' + (mode == 'more')
+            if (mode != 'server') {
+                programArgs '--username', mode == 'more' ? 'MoreProbe' : 'PlainProbe'
+                vmArg '-Dquickshulker.login.address=127.0.0.1:25589'
+            }
+        }
+        project.tasks.named('runLoginTest') {
+            timeout = java.time.Duration.ofMinutes(mode == 'server' ? 15 : 5)
+            if (mode == 'server') standardInput = System.in
+            doFirst {
+                runFolder.mkdirs()
+                if (mode == 'server') {
+                    new File(runFolder, 'eula.txt').text = 'eula=true\n'
+                    new File(runFolder, 'server.properties').text = '''server-ip=127.0.0.1
+server-port=25589
+online-mode=false
+enforce-secure-profile=false
+view-distance=2
+simulation-distance=2
+spawn-protection=0
+white-list=false
+enforce-whitelist=false
+pause-when-empty-seconds=-1
+gamemode=creative
+level-name=login-world
+generate-structures=false
+'''
+                }
+            }
+        }
+    }
+}

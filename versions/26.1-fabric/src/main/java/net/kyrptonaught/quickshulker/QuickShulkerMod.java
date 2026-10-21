@@ -144,8 +144,16 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
         if(getConfig().quickBundle)
             new QuickOpenableRegistry.Builder()
                     .setItem(BundleItem.class)
-                    .setOpenAction((playerEntity, stack) -> playerEntity.openMenu(new SimpleMenuProvider((i, playerInventory, player) ->
-                            new BundleItemMenu(i, playerInventory, new BundleContainer(stack, 64)), stack.getComponents().has(DataComponents.CUSTOM_NAME) ? stack.getHoverName() : Component.translatable("item.minecraft.bundle"))))
+                    .setOpenAction((playerEntity, stack) -> {
+                        if (!(playerEntity instanceof net.minecraft.server.level.ServerPlayer server)) return;
+                        if (!net.kyrptonaught.quickshulker.network.PortableMenuEnvelope.canSend(server)) {
+                            playerEntity.sendOverlayMessage(Component.translatable("quickshulker.container.update_client"));
+                            return;
+                        }
+                        net.kyrptonaught.quickshulker.network.PortableMenuEnvelope.prepareBundle(server);
+                        playerEntity.openMenu(new SimpleMenuProvider((i, playerInventory, player) ->
+                            new BundleItemMenu(i, playerInventory, new BundleContainer(stack, 64)), stack.getComponents().has(DataComponents.CUSTOM_NAME) ? stack.getHoverName() : Component.translatable("item.minecraft.bundle")));
+                    })
                     .register();
 
         if (getConfig().quickLoom)

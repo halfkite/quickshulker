@@ -25,7 +25,8 @@ public class OpenInventoryPacket implements CustomPayload {
     }
 
     public static void send(ServerPlayerEntity player) {
-        ServerPlayNetworking.send(player, new OpenInventoryPacket());
+        if (ServerPlayNetworking.canSend(player, OPEN_INV_ID))
+            ServerPlayNetworking.send(player, new OpenInventoryPacket());
     }
 
 }

@@ -16,7 +16,8 @@ allprojects {
         }
         if (metadata.id != 'quickshulker') throw new GradleException('Not a QuickShulkerMore artifact')
         println('COMPATIBILITY_SHA256=' + MessageDigest.getInstance('SHA-256').digest(artifact.bytes).encodeHex())
-        project.dependencies.add('modRuntimeOnly', project.files(artifact))
+        def runtimeConfiguration = project.configurations.findByName('modRuntimeOnly') != null ? 'modRuntimeOnly' : 'runtimeOnly'
+        project.dependencies.add(runtimeConfiguration, project.files(artifact))
         def mainMod = project.loom.mods.findByName('quickshulker')
         if (mainMod != null) project.loom.mods.remove(mainMod)
         project.sourceSets.test.runtimeClasspath = project.sourceSets.test.runtimeClasspath.minus(project.sourceSets.main.output)
@@ -38,9 +39,11 @@ allprojects {
                 doFirst { java.nio.file.Files.createDirectories(new File(runRoot, directory).toPath()) }
             }
         }
+        def clientRoot = project.minecraft_version.startsWith('26.')
+            ? new File(repo, 'versions/26.3-fabric/src/compatibilityClient') : new File(repo, 'src/compatibilityClient')
         def clientTests = project.sourceSets.create('compatibilityClient') {
-            java.setSrcDirs([new File(repo, 'src/compatibilityClient/java')])
-            resources.setSrcDirs([new File(repo, 'src/compatibilityClient/resources')])
+            java.setSrcDirs([new File(clientRoot, 'java')])
+            resources.setSrcDirs([new File(clientRoot, 'resources')])
         }
         clientTests.compileClasspath = project.sourceSets.main.compileClasspath + project.sourceSets.main.output
         clientTests.runtimeClasspath = clientTests.output + project.sourceSets.main.runtimeClasspath.minus(project.sourceSets.main.output)

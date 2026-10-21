@@ -11,7 +11,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 
 /** Sent immediately BEFORE vanilla OpenScreen and its contents, only to supporting clients. */
 public record PortableMenuEnvelope(int kind) implements CustomPayload {
-    public static final Id<PortableMenuEnvelope> ID = new Id<>(Identifier.of("quickshulker", "portable_menu_v1"));
+    public static final Id<PortableMenuEnvelope> ID = new Id<>(Identifier.of("quickshulker", "portable_menu_v2"));
     public static final PacketCodec<PacketByteBuf, PortableMenuEnvelope> CODEC = PacketCodec.of(
         (packet, buffer) -> buffer.writeByte(packet.kind), buffer -> new PortableMenuEnvelope(buffer.readUnsignedByte()));
     private static int pending;

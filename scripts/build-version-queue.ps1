@@ -22,10 +22,11 @@ foreach ($requestedVersion in $Versions) {
     $project = [IO.Path]::GetFullPath((Join-Path $root $target.project))
     $jdk = if ($target.java -eq 25) { $Jdk25 } else { $Jdk21 }
     $log = Join-Path $reportDir "$version.log"
-    $command = ".\build.ps1 -Version $version -JavaHome '$jdk' -Tasks @('build','printArtifactName') -GradleArguments @('-PlocalCompatDependencies=true','--offline','--console=plain','--no-daemon')"
+    $isolation = Join-Path $root 'gradle/isolate-regression-worlds.init.gradle'
+    $command = ".\build.ps1 -Version $version -JavaHome '$jdk' -Tasks @('build','printArtifactName') -GradleArguments @('-PlocalCompatDependencies=true','--offline','--console=plain','--no-daemon','-I','$isolation')"
     Write-Output "QUEUE BEGIN $version"
     try {
-        & (Join-Path $root 'build.ps1') -Version $version -JavaHome $jdk -Tasks @('build','printArtifactName') -GradleArguments @('-PlocalCompatDependencies=true','--offline','--console=plain','--no-daemon') 2>&1 | Tee-Object -FilePath $log
+        & (Join-Path $root 'build.ps1') -Version $version -JavaHome $jdk -Tasks @('build','printArtifactName') -GradleArguments @('-PlocalCompatDependencies=true','--offline','--console=plain','--no-daemon','-I',$isolation) 2>&1 | Tee-Object -FilePath $log
         if ($LASTEXITCODE -ne 0) { throw "Build failed with exit code $LASTEXITCODE; see $log" }
         $artifactLine = Get-Content -LiteralPath $log | Where-Object { $_ -like 'ARTIFACT_FILE=*' } | Select-Object -Last 1
         if (!$artifactLine) { throw 'Build did not report an installable artifact' }
@@ -45,7 +46,8 @@ foreach ($requestedVersion in $Versions) {
         try {
             $reader = [IO.StreamReader]::new($zip.GetEntry('fabric.mod.json').Open())
             try { $mod = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
-            if ($mod.name -ne 'QuickShulkerMore' -or $mod.version -ne "1.0.0-$version") { throw 'Artifact metadata does not match target version' }
+            $modVersion = (Select-String -LiteralPath (Join-Path $project 'gradle.properties') -Pattern '^mod_version=(.+)$').Matches.Groups[1].Value
+            if ($mod.name -ne 'QuickShulkerMore' -or !$modVersion -or $mod.version -ne "$modVersion-$version") { throw 'Artifact metadata does not match target version' }
             if (@($zip.Entries | Where-Object { $_.FullName -match '(ContainerRegressionTest|PortableWorldTests|MixedWireRegression|upstreamwire/|carpetamsaddition/CarpetAMSAdditionSettings)' }).Count -gt 0) { throw 'Test or optional API class leaked into artifact' }
         } finally { $zip.Dispose() }
         $hash = (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash

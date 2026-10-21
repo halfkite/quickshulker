@@ -20,7 +20,7 @@ public final class MixedWireRegression {
         check(metadata.getName().equals("QuickShulkerMore"), "Public name is More");
         String gameVersion = FabricLoader.getInstance().getModContainer("minecraft").orElseThrow()
             .getMetadata().getVersion().getFriendlyString();
-        check(metadata.getVersion().getFriendlyString().equals("1.0.0-" + gameVersion), "More version matches the actual game");
+        check(metadata.getVersion().getFriendlyString().equals("1.0.1-" + gameVersion), "More version matches the actual game");
         check(QuickShulkerMod.MOD_ID.equals("quickshulker"), "Legacy internal ID preserved");
         check(MoreReleaseTags.version("3.3.0-26.3", "fabric", "26.3").isEmpty(), "Historical 3.x tags cannot prompt an upgrade");
         check(MoreReleaseTags.version("quickshulkermore-fabric-1.0.1-26.3", "fabric", "26.3").orElseThrow().equals("1.0.1"), "More release tag accepted");
@@ -45,7 +45,11 @@ public final class MixedWireRegression {
         } finally { buffer.release(); }
         var registered = net.minecraft.core.registries.BuiltInRegistries.MENU.keySet().stream()
             .filter(id -> id.getNamespace().equals("quickshulker")).map(Object::toString).collect(java.util.stream.Collectors.toSet());
-        check(registered.equals(java.util.Set.of("quickshulker:bundle_item")), "Menu registry has exactly the upstream entry, no unknown More IDs");
+        check(registered.isEmpty(), "Uninstalled clients never need a QuickShulker menu registry entry");
+        check(net.kyrptonaught.quickshulker.gui.MenuTypes.BUNDLE_ITEM == net.minecraft.world.inventory.MenuType.GENERIC_9x3,
+            "Extended menu transport uses a vanilla wire type");
+        check(net.kyrptonaught.quickshulker.network.PortableMenuEnvelope.ID.id().getPath().equals("portable_menu_v2"),
+            "Old clients cannot advertise support for the changed menu transport");
         var inventory = new net.minecraft.world.entity.player.Inventory(null, new net.minecraft.world.entity.EntityEquipment());
         net.kyrptonaught.quickshulker.gui.MenuTypes.preparePortableMenu(1);
         var pot = net.kyrptonaught.quickshulker.gui.MenuTypes.createClientMenu(7, inventory);
@@ -77,11 +81,11 @@ public final class MixedWireRegression {
         check(net.kyrptonaught.quickshulker.gui.MenuTypes.createClientMenu(8, inventory) instanceof net.kyrptonaught.quickshulker.container.CompactStorageMenu,
             "Old callback leaves a stale pot envelope for the following menu");
         for (int round = 0; round < 3; round++) {
-            for (int kind : new int[]{1, 2, 3}) {
+            for (int kind : new int[]{1, 2, 3, 4}) {
                 executor.schedule(() -> net.kyrptonaught.quickshulker.gui.MenuTypes.preparePortableMenu(kind));
                 executor.schedule(() -> {
                     var menu = net.kyrptonaught.quickshulker.gui.MenuTypes.createClientMenu(7, inventory);
-                    check(menu.slots.size() == switch (kind) { case 1 -> 37; case 2 -> 39; default -> 46; },
+                    check(menu.slots.size() == switch (kind) { case 1 -> 37; case 2 -> 39; case 3 -> 46; default -> 100; },
                         "Envelope precedes the correct pot/shelf/crafter slot layout");
                     if (kind == 3) {
                         menu.setData(0, 1);

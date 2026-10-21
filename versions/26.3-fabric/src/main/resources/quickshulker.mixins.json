@@ -13,6 +13,7 @@
     "SourceSlotMixin"
   ],
   "client": [
+    "PortableScreenMixin",
     "ScreenMixin",
     "CreativeSlotMixin",
     "HandledScreenInvoker",

@@ -151,7 +151,7 @@ public final class ContainerRegressionTest {
         net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.CODEC.encode(wire,detailed);
         check(wire.readableBytes()==6 && net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.CODEC.decode(wire).equals(detailed),"Detailed policy independently versioned");wire.release();
         check(net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("quickshulker").orElseThrow().getMetadata().getName().equals("QuickShulkerMore"),"More brand preserved");
-        check(net.minecraft.registry.Registries.SCREEN_HANDLER.getIds().stream().noneMatch(id->id.getNamespace().equals("quickshulker") && !id.getPath().equals("bundle_item")),"No added registry IDs required by original clients");
+        check(net.minecraft.registry.Registries.SCREEN_HANDLER.getIds().stream().noneMatch(id->id.getNamespace().equals("quickshulker")),"Uninstalled clients need no QuickShulker menu registry entry");
         check(!net.kyrptonaught.quickshulker.compat.ams.AMSCompat.isLargeShulkerBoxEnabled(),"Optional AMS absent path");
         var source = new net.minecraft.inventory.SimpleInventory(1);
         source.setStack(0, shulker);

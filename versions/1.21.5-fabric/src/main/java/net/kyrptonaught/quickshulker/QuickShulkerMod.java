@@ -92,6 +92,11 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
                     if(stack.getOrDefault(DataComponentTypes.BUNDLE_CONTENTS,net.minecraft.component.type.BundleContentsComponent.DEFAULT).stream().anyMatch(s->s.getItem() instanceof net.minecraft.item.BundleItem)){
                         player.sendMessage(Text.translatable("quickshulker.bundle.nested"),true);return;
                     }
+                    if (!(player instanceof net.minecraft.server.network.ServerPlayerEntity server)
+                            || !net.kyrptonaught.quickshulker.network.PortableMenuEnvelope.canSend(server)) {
+                        player.sendMessage(Text.translatable("quickshulker.container.update_client"),true);return;
+                    }
+                    net.kyrptonaught.quickshulker.network.PortableMenuEnvelope.prepareBundle(server);
                     player.openHandledScreen(new SimpleNamedScreenHandlerFactory((id,inv,opener)->
                         new net.kyrptonaught.quickshulker.container.PortableBundleMenu(id,inv,new net.kyrptonaught.quickshulker.container.PortableBundleInventory(stack)),stack.getName()));
                 }).register();

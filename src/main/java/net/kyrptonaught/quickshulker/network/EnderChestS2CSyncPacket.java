@@ -20,7 +20,8 @@ public class EnderChestS2CSyncPacket {
         public static final PacketCodec<RegistryByteBuf, S2CEChestContentPacket> CODEC = PacketCodec.tuple(ItemStack.OPTIONAL_LIST_PACKET_CODEC, S2CEChestContentPacket::itemStacks, S2CEChestContentPacket::new);
 
         public static void send(ServerPlayerEntity player, List<ItemStack> itemStacks) {
-            ServerPlayNetworking.send(player, new S2CEChestContentPacket(itemStacks));
+            if (ServerPlayNetworking.canSend(player, S2C_ECHEST_CONTENT_PACKET_ID))
+                ServerPlayNetworking.send(player, new S2CEChestContentPacket(itemStacks));
         }
 
         @Override
@@ -39,7 +40,8 @@ public class EnderChestS2CSyncPacket {
                 buf -> new S2CEChestSlotPacket(buf.readInt(), PacketUtils.readItemStack(buf)));
 
         public static void send(ServerPlayerEntity player, int slotId, ItemStack itemStack) {
-            ServerPlayNetworking.send(player, new S2CEChestSlotPacket(slotId, itemStack));
+            if (ServerPlayNetworking.canSend(player, S2C_ECHEST_SLOT_PACKET_ID))
+                ServerPlayNetworking.send(player, new S2CEChestSlotPacket(slotId, itemStack));
         }
 
         @Override

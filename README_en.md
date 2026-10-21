@@ -4,7 +4,7 @@
 
 QuickShulkerMore is an unofficial extension of [QuickShulker](https://github.com/MoRanpcy/quickshulker), adding Carpet AMS Addition large-container compatibility, quick workstations, and quick containers. The project follows the upstream MIT license.
 
-The current mod version is **1.0.0**. The primary development target is Minecraft `26.3` / Fabric, and supported versions range from Minecraft `1.21` to `26.3` on Fabric.
+The current mod version is **1.0.1**. The primary development target is Minecraft `26.3` / Fabric, and supported versions range from Minecraft `1.21` to `26.3` on Fabric.
 
 ## Original features
 
@@ -21,7 +21,7 @@ The current mod version is **1.0.0**. The primary development target is Minecraf
 ## Installation
 
 - Put the JAR in the instance's `mods` folder.
-- Install QuickShulkerMore or the original QuickShulker on both client and server to use the original features. For the full quick-container feature set, install the same version of QuickShulkerMore on both client and server.
+- Clients can join a server running QuickShulkerMore without installing the mod. For the full quick-access feature set, install the same version of QuickShulkerMore on both client and server.
 - Do not install the original QuickShulker and QuickShulkerMore together; they use the same internal mod ID.
 
 ## Project

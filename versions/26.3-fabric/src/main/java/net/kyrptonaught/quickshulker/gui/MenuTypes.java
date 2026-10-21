@@ -1,31 +1,29 @@
 package net.kyrptonaught.quickshulker.gui;
 
-import net.kyrptonaught.quickshulker.QuickShulkerMod;
 import net.kyrptonaught.quickshulker.container.CompactStorageMenu;
 import net.kyrptonaught.quickshulker.container.PortableCrafterMenu;
 import net.kyrptonaught.quickshulker.gui.screen.BundleItemMenu;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
 
 /**
- * Retain the upstream registry shape. A negotiated envelope selects More's precise
- * menu before vanilla opens the established bundle_item wire entry.
+ * Use a vanilla wire type so joining never requires a client-side registry entry.
+ * A negotiated envelope selects the precise menu before vanilla opens the screen.
  */
 public class MenuTypes {
     private static int nextPortableKind;
-    public static final MenuType<AbstractContainerMenu> BUNDLE_ITEM = Registry.register(
-        BuiltInRegistries.MENU, Identifier.fromNamespaceAndPath(QuickShulkerMod.MOD_ID, "bundle_item"),
-        new MenuType<>(MenuTypes::createClientMenu, FeatureFlagSet.of()));
+    public static final MenuType<?> BUNDLE_ITEM = MenuType.GENERIC_9x3;
 
     public static void preparePortableMenu(int kind) {
-        nextPortableKind = kind >= 1 && kind <= 3 ? kind : 0;
+        nextPortableKind = kind >= 1 && kind <= 4 ? kind : 0;
     }
     public static void clearPendingMenu() { nextPortableKind = 0; }
+    public static int takePendingMenu() {
+        int kind = nextPortableKind;
+        clearPendingMenu();
+        return kind;
+    }
     public static AbstractContainerMenu createClientMenu(int id, Inventory inventory) {
         int kind = nextPortableKind;
         clearPendingMenu();

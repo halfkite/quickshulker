@@ -11,11 +11,15 @@ import net.minecraft.server.level.ServerPlayer;
 
 /** Sent immediately BEFORE vanilla OpenScreen and its contents, only to supporting clients. */
 public record PortableMenuEnvelope(int kind) implements CustomPacketPayload {
-    public static final Type<PortableMenuEnvelope> ID = new Type<>(Identifier.fromNamespaceAndPath("quickshulker", "portable_menu_v1"));
+    public static final Type<PortableMenuEnvelope> ID = new Type<>(Identifier.fromNamespaceAndPath("quickshulker", "portable_menu_v2"));
     public static final StreamCodec<FriendlyByteBuf, PortableMenuEnvelope> CODEC = StreamCodec.ofMember(
         (packet, buffer) -> buffer.writeByte(packet.kind), buffer -> new PortableMenuEnvelope(buffer.readUnsignedByte()));
     public static void register() { PayloadTypeRegistry.clientboundPlay().register(ID, CODEC); }
     public static boolean canSend(ServerPlayer player) { return ServerPlayNetworking.canSend(player, ID); }
+    public static void prepareBundle(ServerPlayer player) {
+        if (!canSend(player)) throw new IllegalStateException("Client has not advertised bundle menu support");
+        ServerPlayNetworking.send(player, new PortableMenuEnvelope(4));
+    }
     public static void prepare(ServerPlayer player, ContainerKind kind) {
         int wireKind = switch (kind) {
             case POT -> 1; case SHELF -> 2; case CRAFTER -> 3;

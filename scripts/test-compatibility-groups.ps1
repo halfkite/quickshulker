@@ -11,7 +11,7 @@ $metadata = Get-Content -LiteralPath (Join-Path $repo 'development.json') -Raw |
 $groups = @($metadata.fabricCompatibilityGroups | Where-Object { $Targets.Count -eq 0 -or $Targets -contains $_.buildTarget })
 if ($groups.Count -eq 0) { throw 'No compatibility groups selected' }
 if ($ExistingArtifact -and $groups.Count -ne 1) { throw 'ExistingArtifact requires exactly one group' }
-$report = Join-Path $repo ('build/compatibility/' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+$report = Join-Path $repo ('build/compatibility/' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $report | Out-Null
 $previousJava = $env:JAVA_HOME
 $records = [Collections.Generic.List[object]]::new()

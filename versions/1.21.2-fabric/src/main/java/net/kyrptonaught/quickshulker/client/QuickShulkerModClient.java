@@ -24,7 +24,6 @@ public class QuickShulkerModClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        net.minecraft.client.gui.screen.ingame.HandledScreens.register(net.kyrptonaught.quickshulker.gui.LegacyBundleMenus.BUNDLE_ITEM, net.kyrptonaught.quickshulker.gui.screen.PortableBundleScreen::new);
         ClientPlayNetworking.registerGlobalReceiver(net.kyrptonaught.quickshulker.network.ContainerPolicyPacket.ID,
             (payload, context) -> context.client().execute(() ->
                 net.kyrptonaught.quickshulker.container.PortableContainers.setRemotePolicy(payload)));

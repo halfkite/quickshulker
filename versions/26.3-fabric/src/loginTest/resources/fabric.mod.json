@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "quickshulker_login_test",
+  "version": "1.0.0",
+  "environment": "*",
+  "entrypoints": {
+    "server": ["net.kyrptonaught.quickshulker.logintest.LoginServer"],
+    "client": ["net.kyrptonaught.quickshulker.logintest.LoginClient"]
+  },
+  "depends": {"fabricloader": "*", "fabric-api": "*", "minecraft": "26.3"}
+}
