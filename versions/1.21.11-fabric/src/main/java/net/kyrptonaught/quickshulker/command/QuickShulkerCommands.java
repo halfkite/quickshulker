@@ -28,8 +28,21 @@ public final class QuickShulkerCommands{
                 return saved(c.getSource(),"quickContainers",value);
             })));
         root.then(bool("quickContainersCreativeOnly",null));
-        for(var kind:ContainerKind.values())root.then(bool(kind.key,kind));
+        for(var kind:ContainerKind.values())root.then(mode(kind));
         dispatcher.register(root);
+    }
+    private static LiteralArgumentBuilder<ServerCommandSource> mode(ContainerKind kind){
+        return CommandManager.literal(kind.key).executes(c->{
+            int mode=kind.mode(QuickShulkerMod.getConfig());
+            c.getSource().sendFeedback(()->Text.literal(kind.key+" = "+(mode==0?"creative":mode==1?"true":"false")),false);return 1;
+        }).then(CommandManager.argument("value",StringArgumentType.word()).suggests((c,b)->{
+            b.suggest("creative");b.suggest("true");b.suggest("false");return b.buildFuture();
+        }).executes(c->{
+            String value=StringArgumentType.getString(c,"value");
+            int mode=switch(value){case "creative"->0;case "true"->1;case "false"->2;default->-1;};
+            if(mode<0){c.getSource().sendError(Text.literal("Expected creative, true or false"));return 0;}
+            kind.setMode(QuickShulkerMod.getConfig(),mode);return saved(c.getSource(),kind.key,value);
+        }));
     }
     private static LiteralArgumentBuilder<ServerCommandSource> bool(String name,ContainerKind kind){
         return CommandManager.literal(name).executes(c->{

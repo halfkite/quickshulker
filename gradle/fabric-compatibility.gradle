@@ -15,6 +15,11 @@ def timestamp = providers.gradleProperty('buildTimestamp').getOrElse(
     new Date().format('yyyyMMddHHmm', TimeZone.getTimeZone('Asia/Hong_Kong')))
 if (!(timestamp ==~ /\d{12}/)) throw new GradleException('buildTimestamp must be yyyyMMddHHmm')
 def filename = "${project.archives_base_name}-${project.mod_version}-mc${label}-fabric${official ? '' : '-' + timestamp}.jar"
+
+// Test the selected build version, including when one binary covers several game patches.
+loom.runs.named('regression') {
+    vmArg '-Dquickshulker.build.version=' + project.version
+}
 tasks.named('processResources') {
     inputs.property('minecraftCompatibility', predicate)
     // Existing version projects replace the exact base predicate first.

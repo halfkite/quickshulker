@@ -1,4 +1,5 @@
 {
+  "quickshulker.config.sound_client_only": "Only affects this client, not other players or sounds from placed blocks.",
   "key.category.quickshulker.main": "QuickShulkerMore",
   "key.quickshulker.quickshulker": "Open held Shulker Box",
   "key.quickshulker.config.category.title": "QuickShulkerMore Config",
@@ -71,5 +72,6 @@
   "key.quickshulker.config.quickFurnace": "Furnace",
   "key.quickshulker.config.quickSmoker": "Smoker",
   "key.quickshulker.config.quickBlastFurnace": "Blast furnace",
-  "key.quickshulker.config.quickBrewingStand": "Brewing stand"
+  "key.quickshulker.config.quickBrewingStand": "Brewing stand",
+  "key.quickshulker.config.silentShulker": "Silence quick shulker boxes"
 }

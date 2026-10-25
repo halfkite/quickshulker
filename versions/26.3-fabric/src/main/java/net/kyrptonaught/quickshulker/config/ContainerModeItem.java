@@ -9,10 +9,13 @@ import net.minecraft.world.item.DyeColor;
 public final class ContainerModeItem extends ConfigItem<Integer>{
     private final NotSuckyButton button;
     public ContainerModeItem(ConfigOptions config){
-        super(Component.translatable("key.quickshulker.config.quickContainers"),mode(config),0);
+        this(config,null);
+    }
+    public ContainerModeItem(ConfigOptions config,ContainerKind kind){
+        super(Component.translatable("key.quickshulker.config."+(kind==null?"quickContainers":kind.key)),kind==null?mode(config):kind.mode(config),kind==null?0:1);
         button=new NotSuckyButton(0,0,100,20,Component.empty(),b->setValue((value+1)%3));
         setValue(value);useDefaultResetBTN();
-        setSaveConsumer(v->{config.quickContainers=v!=2;config.quickContainersCreativeOnly=v==0;});
+        setSaveConsumer(v->{if(kind!=null)kind.setMode(config,v);else{config.quickContainers=v!=2;config.quickContainersCreativeOnly=v==0;}});
         setToolTip(Component.translatable("quickshulker.config.server_policy"));
     }
     public static int mode(ConfigOptions c){return !c.quickContainers?2:c.quickContainersCreativeOnly?0:1;}

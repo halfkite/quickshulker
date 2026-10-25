@@ -27,7 +27,8 @@ public class ModConfigMenu {
 
         ConfigSection optionsSection = new ConfigSection(configScreen, Component.translatable("key.quickshulker.config.category.options"));
         optionsSection.addConfigItem(new BooleanItem(Component.translatable("key.quickshulker.config.rightClickClose"), options.rightClickClose, false).setSaveConsumer(value -> options.rightClickClose = value));
-        optionsSection.addConfigItem(new BooleanItem(Component.translatable("key.quickshulker.config.playSound"), options.playSound, true).setSaveConsumer(value -> options.playSound = value));
+        optionsSection.addConfigItem(new BooleanItem(Component.translatable("key.quickshulker.config.playSound"), options.playSound, true).setSaveConsumer(value -> options.playSound = value).setToolTip(Component.translatable("quickshulker.config.sound_client_only")));
+        optionsSection.addConfigItem(new BooleanItem(Component.translatable("key.quickshulker.config.silentShulker"), options.silentShulker, false).setSaveConsumer(value -> options.silentShulker = value).setToolTip(Component.translatable("quickshulker.config.sound_client_only")));
 
         SubItem subItem = (SubItem) optionsSection.addConfigItem(new SubItem(Component.translatable("key.quickshulker.config.category.bundleing"), true));
         subItem.addConfigItem(new BooleanItem(Component.translatable("key.quickshulker.config.supportsBundlingInsert"), options.supportsBundlingInsert, true).setSaveConsumer(value -> options.supportsBundlingInsert = value));
@@ -53,8 +54,7 @@ public class ModConfigMenu {
         ConfigSection containers = new ConfigSection(configScreen, Component.translatable("quickshulker.config.containers"));
         containers.addConfigItem(new ContainerModeItem(options));
         for (ContainerKind kind : ContainerKind.values())
-            containers.addConfigItem(new BooleanItem(Component.translatable("key.quickshulker.config." + kind.key), kind.enabled(options), true)
-                .setSaveConsumer(value -> kind.set(options, value)).setToolTip(Component.translatable("quickshulker.config.server_policy")));
+            containers.addConfigItem(new ContainerModeItem(options,kind));
         return configScreen;
     }
 }

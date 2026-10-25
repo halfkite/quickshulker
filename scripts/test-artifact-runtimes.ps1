@@ -31,7 +31,8 @@ try {
         $log = Join-Path $report "$version.log"
         Write-Output "ARTIFACT RUNTIME BEGIN $version SHA256=$digest"
         $networkArguments = if ($Offline) { @('--offline') } else { @() }
-        & (Join-Path $project 'gradlew.bat') -p $project regressionTest worldRegressionTest runCompatibilityClient -I (Join-Path $repo 'gradle/verify-compatible-jar.init.gradle') "-PcompatibilityJar=$($artifact.FullName)" -PlocalCompatDependencies=true --console=plain --no-daemon @networkArguments 2>&1 | Tee-Object -FilePath $log | Out-Null
+        $runtimeArguments = @('-p', $project, 'regressionTest', 'worldRegressionTest', 'runCompatibilityClient', '-I', (Join-Path $repo 'gradle/verify-compatible-jar.init.gradle'), "-PcompatibilityJar=$($artifact.FullName)", '-PlocalCompatDependencies=true', '--console=plain', '--no-daemon') + $networkArguments
+        & (Join-Path $project 'gradlew.bat') @runtimeArguments 2>&1 | Tee-Object -FilePath $log | Out-Null
         if ($LASTEXITCODE -ne 0) { Get-Content -LiteralPath $log -Tail 50; throw "Runtime validation failed: $version" }
         $worldReport = Join-Path $project 'build/world-regression-run/reports/world-tests.xml'
         $proof = & python (Join-Path $repo 'scripts/python/package_fabric_build.py') verify-runtime --repo-root $repo --target "$version-fabric" --jar $artifact.FullName --log $log --world-report $worldReport

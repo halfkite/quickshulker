@@ -24,6 +24,7 @@ public class QuickShulkerModClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        QuickSoundClient.register();
         ClientPlayNetworking.registerGlobalReceiver(net.kyrptonaught.quickshulker.network.ContainerPolicyPacket.ID,
             (payload, context) -> context.client().execute(() ->
                 net.kyrptonaught.quickshulker.container.PortableContainers.setRemotePolicy(payload)));

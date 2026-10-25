@@ -108,7 +108,7 @@ public final class ContainerRegressionTest {
         policyBuffer.clear();
         var detailed = new net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket(true, false, 73);
         net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.CODEC.encode(policyBuffer, detailed);
-        check(policyBuffer.readableBytes() == 6 && net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.CODEC.decode(policyBuffer).equals(detailed), "Versioned policy round trip");
+        check(policyBuffer.readableBytes() == 10 && net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.CODEC.decode(policyBuffer).equals(detailed), "Versioned policy round trip");
         check(!net.kyrptonaught.quickshulker.network.ContainerPolicyPacket.ID.equals(net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.ID), "Old and new policies have separate channels");
         policyBuffer.release();
         var originalInventory = java.util.List.of(new ItemStack(Items.OAK_PLANKS, 63), ItemStack.EMPTY);
@@ -154,6 +154,32 @@ public final class ContainerRegressionTest {
         check(ItemStack.isSameItemSameComponents(crafterItem, decodedCrafter),
             "Crafter item components round trip without alteration");
         checks += MixedWireRegression.run();
+        for(var kind:net.kyrptonaught.quickshulker.config.ContainerKind.values()){
+            check(kind.mode(defaults)==1,"Legacy enabled child remains unrestricted below master");
+            kind.setMode(defaults,0);
+            check(kind.enabled(defaults)&&kind.creativeOnly(defaults)&&kind.mode(defaults)==0,"Child creative-only mode persists");
+            kind.setMode(defaults,2);
+            check(!kind.enabled(defaults)&&!kind.creativeOnly(defaults),"Disabled clears creative restriction");
+            kind.setMode(defaults,1);
+            check(kind.enabled(defaults)&&!kind.creativeOnly(defaults),"True removes child creative restriction");
+        }
+        var quietClient=new net.kyrptonaught.quickshulker.config.ConfigOptions();
+        var loudClient=new net.kyrptonaught.quickshulker.config.ConfigOptions();
+        quietClient.silentShulker=true;
+        check(!quietClient.shouldPlayQuickSound(true)&&loudClient.shouldPlayQuickSound(true),"Listeners independently choose shulker sound");
+        check(quietClient.shouldPlayQuickSound(false),"Shulker-only mute preserves other quick sounds");
+        quietClient.playSound=false;
+        check(!quietClient.shouldPlayQuickSound(false)&&loudClient.shouldPlayQuickSound(false),"Total mute stays on the selected client");
+        for(boolean enabled:new boolean[]{false,true})for(boolean silent:new boolean[]{false,true})for(boolean isShulker:new boolean[]{false,true}){
+            quietClient.playSound=enabled;quietClient.silentShulker=silent;
+            check(quietClient.shouldPlayQuickSound(isShulker)==(enabled&&(!isShulker||!silent)),"Local sound matrix");
+        }
+        var soundWire=new FriendlyByteBuf(Unpooled.buffer());
+        var soundPacket=new net.kyrptonaught.quickshulker.network.QuickSoundPacket(net.minecraft.sounds.SoundEvents.SHULKER_BOX_OPEN,1.25,70.5,-2.75,42L,true);
+        net.kyrptonaught.quickshulker.network.QuickSoundPacket.CODEC.encode(soundWire,soundPacket);
+        check(net.kyrptonaught.quickshulker.network.QuickSoundPacket.CODEC.decode(soundWire).equals(soundPacket)&&!soundWire.isReadable(),"Tagged sound payload round trip");
+        soundWire.release();
+        check(net.kyrptonaught.quickshulker.network.QuickSoundPacket.inRange(0,16)&&!net.kyrptonaught.quickshulker.network.QuickSoundPacket.inRange(256,16),"Vanilla sound range boundary");
         System.out.println("QuickShulkerMore regression checks passed: " + checks);
     }
 }

@@ -1,4 +1,6 @@
 {
+  "quickshulker.config.sound_client_only": "仅影响本客户端，不改变其他玩家或世界中已放置方块的声音。",
+  "key.quickshulker.config.silentShulker": "快捷潜影盒静音",
   "key.category.quickshulker.main": "快捷潜影盒",
   "key.quickshulker.quickshulker": "快速打开手持潜影盒",
   "key.quickshulker.config.category.title": "QuickShulkerMore 配置",

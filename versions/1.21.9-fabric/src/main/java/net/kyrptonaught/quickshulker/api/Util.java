@@ -98,7 +98,7 @@ public class Util {
                     contents.setWriteAllowed(() -> openedContainer.isSourceValid(player));
                 }
             }
-            if (qsData != null && QuickShulkerMod.getConfig().playSound) playSound(player, qsData.getSound(stack, true));
+            playItemSound(player,stack,true);
             player.currentScreenHandler.addListener(forceCloseScreenIfNotPresent(player, sourceInventory, sourceInventorySlot, stack));
         }
     }
@@ -133,7 +133,7 @@ public class Util {
         ItemStack stack = player.getInventory().getStack(selectedInvIndex);
         QuickShulkerData qsData = QuickOpenableRegistry.getQuickie(stack.getItem());
         if (qsData != null) {
-            playSound(player, qsData.getSound(stack, true));
+            playItemSound(player,stack,true);
         }
     }
 
@@ -141,15 +141,18 @@ public class Util {
         ItemStack stack = player.getInventory().getStack(selectedInvIndex);
         QuickShulkerData qsData = QuickOpenableRegistry.getQuickie(stack.getItem());
         if (qsData != null) {
-            playSound(player, qsData.getSound(stack, false));
+            playItemSound(player,stack,false);
         }
     }
 
     public static void playSound(PlayerEntity player, SoundEvent sound){
-        if(sound != null){
-//            player.getEntityWorld().playSound(null, player.getBlockPos(), sound, player.getSoundCategory());
-            player.getEntityWorld().playSound(null, player.getX(), player.getY(), player.getZ(), sound, SoundCategory.BLOCKS);
-        }
+        net.kyrptonaught.quickshulker.network.QuickSoundPacket.broadcast(player,sound,false);
+    }
+
+    public static void playItemSound(PlayerEntity player,ItemStack stack,boolean opening){
+        var data=QuickOpenableRegistry.getQuickie(stack.getItem());
+        if(data!=null)
+            net.kyrptonaught.quickshulker.network.QuickSoundPacket.broadcast(player,data.getSound(stack,opening),net.kyrptonaught.shulkerutils.ShulkerUtils.isShulkerItem(stack));
     }
 
     public static boolean areItemsEqualExactly(ItemStack stack, ItemStack otherStack) {

@@ -46,7 +46,8 @@ try {
             $project = [IO.Path]::GetFullPath((Join-Path $repo $target.project))
             $log = Join-Path $report "$game-runtime.log"
             Write-Output "RUNTIME BEGIN $game shared SHA256=$digest"
-            & (Join-Path $project 'gradlew.bat') -p $project regressionTest worldRegressionTest runCompatibilityClient -I (Join-Path $repo 'gradle/verify-compatible-jar.init.gradle') "-PcompatibilityJar=$artifact" @GradleArguments 2>&1 | Tee-Object -FilePath $log | Out-Null
+            $runtimeArguments = @('-p', $project, 'regressionTest', 'worldRegressionTest', 'runCompatibilityClient', '-I', (Join-Path $repo 'gradle/verify-compatible-jar.init.gradle'), "-PcompatibilityJar=$artifact") + $GradleArguments
+            & (Join-Path $project 'gradlew.bat') @runtimeArguments 2>&1 | Tee-Object -FilePath $log | Out-Null
             if ($LASTEXITCODE -ne 0) { Get-Content $log -Tail 60; throw "Shared JAR failed on Minecraft $game; see $log" }
             $output = Get-Content -LiteralPath $log -Raw
             if ($output -notmatch 'external artifact verified:' -or $output -notmatch 'shared JAR client smoke passed:') { throw "Missing external JAR/client verification for $game" }

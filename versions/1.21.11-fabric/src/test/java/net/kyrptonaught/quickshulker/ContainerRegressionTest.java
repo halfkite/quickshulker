@@ -156,7 +156,7 @@ public final class ContainerRegressionTest {
         check(wire.readableBytes()==2,"Old policy still two bytes");wire.clear();
         var detailed=new net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket(true,false,15);
         net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.CODEC.encode(wire,detailed);
-        check(wire.readableBytes()==6 && net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.CODEC.decode(wire).equals(detailed),"Detailed policy independently versioned");wire.release();
+        check(wire.readableBytes()==10 && net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.CODEC.decode(wire).equals(detailed),"Detailed policy independently versioned");wire.release();
         check(net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("quickshulker").orElseThrow().getMetadata().getName().equals("QuickShulkerMore"),"More brand preserved");
         check(net.minecraft.registry.Registries.SCREEN_HANDLER.getIds().stream().noneMatch(id->id.getNamespace().equals("quickshulker")),"Uninstalled clients need no QuickShulker menu registry entry");
         check(!net.kyrptonaught.quickshulker.compat.ams.AMSCompat.isLargeShulkerBoxEnabled(),"Optional AMS absent path");
@@ -175,6 +175,37 @@ public final class ContainerRegressionTest {
         var outerContents=(ItemStackInventory)outerMenu.getSlot(0).inventory;outerContents.bindSourceSession(outer);outerContents.setStack(0,shulker);
         tracked.setSourceSlot(null,outerContents,0,shulker);
         check(tracked.isSourceSlot(outerSource,0),"Nested source also protects its outer host");
+        for(var kind:net.kyrptonaught.quickshulker.config.ContainerKind.values()){
+            check(kind.mode(config)==1,"Legacy enabled child remains unrestricted below master");
+            kind.setMode(config,0);
+            check(kind.enabled(config)&&kind.creativeOnly(config)&&kind.mode(config)==0,"Child creative-only mode persists");
+            kind.setMode(config,2);
+            check(!kind.enabled(config)&&!kind.creativeOnly(config),"Disabled clears creative restriction");
+            kind.setMode(config,1);
+            check(kind.enabled(config)&&!kind.creativeOnly(config),"True removes child creative restriction");
+        }
+        var quietClient=new net.kyrptonaught.quickshulker.config.ConfigOptions();
+        var loudClient=new net.kyrptonaught.quickshulker.config.ConfigOptions();
+        quietClient.silentShulker=true;
+        check(!quietClient.shouldPlayQuickSound(true)&&loudClient.shouldPlayQuickSound(true),"Listeners independently choose shulker sound");
+        check(quietClient.shouldPlayQuickSound(false),"Shulker-only mute preserves other quick sounds");
+        quietClient.playSound=false;
+        check(!quietClient.shouldPlayQuickSound(false)&&loudClient.shouldPlayQuickSound(false),"Total mute stays on the selected client");
+        for(boolean enabled:new boolean[]{false,true})for(boolean silent:new boolean[]{false,true})for(boolean isShulker:new boolean[]{false,true}){
+            quietClient.playSound=enabled;quietClient.silentShulker=silent;
+            check(quietClient.shouldPlayQuickSound(isShulker)==(enabled&&(!isShulker||!silent)),"Local sound matrix");
+        }
+        var soundWire=new PacketByteBuf(Unpooled.buffer());
+        var soundPacket=new net.kyrptonaught.quickshulker.network.QuickSoundPacket(net.minecraft.sound.SoundEvents.BLOCK_SHULKER_BOX_OPEN,1.25,70.5,-2.75,42L,true);
+        net.kyrptonaught.quickshulker.network.QuickSoundPacket.CODEC.encode(soundWire,soundPacket);
+        var originalSoundBytes=soundWire.copy();
+        var decodedSound=net.kyrptonaught.quickshulker.network.QuickSoundPacket.CODEC.decode(soundWire);
+        var reencodedSound=new PacketByteBuf(Unpooled.buffer());
+        net.kyrptonaught.quickshulker.network.QuickSoundPacket.CODEC.encode(reencodedSound,decodedSound);
+        check(!soundWire.isReadable()&&io.netty.buffer.ByteBufUtil.equals(originalSoundBytes,reencodedSound),"Tagged sound payload byte-for-byte round trip");
+        originalSoundBytes.release();reencodedSound.release();
+        soundWire.release();
+        check(net.kyrptonaught.quickshulker.network.QuickSoundPacket.inRange(0,16)&&!net.kyrptonaught.quickshulker.network.QuickSoundPacket.inRange(256,16),"Vanilla sound range boundary");
         System.out.println("QuickShulkerMore " + net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("minecraft").orElseThrow().getMetadata().getVersion().getFriendlyString() + " regression checks passed: " + checks);
     }
 }

@@ -1,5 +1,31 @@
 # 更新日志 / Changelog
 
+## 1.0.2 — 2026-10-25
+
+### 中文
+
+- 增加独立的“快捷潜影盒静音”选项，统一控制快捷打开和关闭音效，不影响放置在世界中的方块声音。
+- 声音设置仅影响本客户端，不再向服务端发送个人声音偏好，也不改变其他玩家的声音；未安装 More 的客户端继续接收原版声音包。
+- 快捷容器的每个子项均支持 `创造可用 / true / false`，配置界面与 OP 指令同步支持；总开关仍为权限上限，旧配置保留原有权限。
+- Minecraft `26.1`、`26.1.1`、`26.1.2` 合并使用 `mc26.1-26.1.2` 安装包，并加入独立的补丁版本兼容验证目标。
+- Fabric 版本统一升级至 `1.0.2`；本地测试包保留时间戳，GitHub 正式构建不带时间戳。
+
+完整的新配置及可独立静音的快捷音效需要客户端、服务端均使用本次修正后的 `1.0.2` 构建，不要与 10 月 24 日旧测试包混用。声音偏好只保存在本地，不受服务端声音配置控制。原有不安装客户端模组即可加入服务器的行为保持不变。本次不包含 NeoForge 移植。
+
+验证：本次修正后的 10 个安装包覆盖 17 个 Fabric 运行版本，均通过实际安装 JAR 的组件/协议回归、世界测试和客户端加载检查，共通过 118 项世界测试；12 项构建流程测试也通过。26.3 额外完成静音 More、有声 More、未安装 More 的 Fabric 三客户端实连的 15 项声音引擎调用检查。未逐版本进行多人实连，未做实际听感或 AMS 联测。10 月 24 日旧测试合集不包含此修正。
+
+### English
+
+- Added a dedicated “Silence quick shulker boxes” option for quick opening and closing sounds, without changing the sounds of placed blocks.
+- Sound settings now affect only the local client. Personal preferences are no longer sent to the server and cannot change what other players hear. Clients without More continue receiving vanilla sound packets.
+- Every portable-container child option now supports `creative / true / false`, both in the configuration screen and OP commands. The master setting remains the permission ceiling, and existing configuration permissions are preserved.
+- Minecraft `26.1`, `26.1.1`, and `26.1.2` now share the `mc26.1-26.1.2` artifact, with separate runtime-validation targets for both patch releases.
+- Updated the Fabric versions to `1.0.2`. Local test artifacts retain timestamps; official GitHub builds do not include timestamps.
+
+Both client and server must use matching corrected `1.0.2` builds for the complete new configuration and independently muted quick sounds; do not mix them with the October 24 test JARs. Sound preferences stay local and are not controlled by server sound settings. Clients without the mod can still join the server. This update does not port NeoForge.
+
+Validation: all 10 corrected installation JARs passed packaged-artifact component/protocol regressions, world tests, and client class-loading checks across 17 Fabric runtimes, totaling 118 world tests. All 12 build-pipeline tests also passed. On 26.3, 15 playback-engine checks additionally passed over simultaneous real connections from quiet More, loud More, and Fabric-without-More clients. Multiplayer was not tested individually on every version, and physical audibility and actual AMS integration were not verified. The October 24 test ZIP does not contain this correction.
+
 ## 1.0.1 — 2026-10-21
 
 ### 中文

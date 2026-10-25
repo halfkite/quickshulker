@@ -25,6 +25,7 @@ public class QuickShulkerModClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        QuickSoundClient.register();
         ClientTickEvents.START_LEVEL_TICK.register(ModKeyCallback::onKeyPressed);
         KeyBindingRegister.register();
         MenuScreens.registerMenuScreens();

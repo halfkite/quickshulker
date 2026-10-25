@@ -8,19 +8,20 @@ import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
 
-public record ContainerPolicyUpdatePacket(boolean enabled,boolean creativeOnly,int mask) implements CustomPayload{
-    public static final Id<ContainerPolicyUpdatePacket> ID=new Id<>(Identifier.of("quickshulker","update_container_policy_v2"));
+public record ContainerPolicyUpdatePacket(boolean enabled,boolean creativeOnly,int mask,int creativeMask) implements CustomPayload{
+    public ContainerPolicyUpdatePacket(boolean enabled,boolean creativeOnly,int mask){this(enabled,creativeOnly,mask,0);}
+    public static final Id<ContainerPolicyUpdatePacket> ID=new Id<>(Identifier.of("quickshulker","update_container_policy_v3"));
     public static final PacketCodec<PacketByteBuf,ContainerPolicyUpdatePacket> CODEC=PacketCodec.of(
-        (p,b)->{b.writeBoolean(p.enabled);b.writeBoolean(p.creativeOnly);b.writeInt(p.mask);},
-        b->new ContainerPolicyUpdatePacket(b.readBoolean(),b.readBoolean(),b.readInt()));
+        (p,b)->{b.writeBoolean(p.enabled);b.writeBoolean(p.creativeOnly);b.writeInt(p.mask);b.writeInt(p.creativeMask);},
+        b->new ContainerPolicyUpdatePacket(b.readBoolean(),b.readBoolean(),b.readInt(),b.readInt()));
     public static void register(){
         PayloadTypeRegistry.playC2S().register(ID,CODEC);
         ServerPlayNetworking.registerGlobalReceiver(ID,(p,context)->context.server().execute(()->{
             var player=context.player();
             if(!net.minecraft.server.command.CommandManager.GAMEMASTERS_CHECK.allows(player.getPermissions())){DetailedContainerPolicyPacket.send(player);return;}
-            if((p.mask & ~ContainerKind.allMask())!=0)return;
+            if(((p.mask | p.creativeMask) & ~ContainerKind.allMask())!=0)return;
             var c=QuickShulkerMod.getConfig();c.quickContainers=p.enabled;c.quickContainersCreativeOnly=p.creativeOnly;
-            ContainerKind.applyMask(c,p.mask);QuickShulkerMod.config.save();PortableContainers.refresh(context.server());
+            ContainerKind.applyMask(c,p.mask);c.containerCreativeMask=p.creativeMask;QuickShulkerMod.config.save();PortableContainers.refresh(context.server());
         }));
     }
     public Id<? extends CustomPayload> getId(){return ID;}

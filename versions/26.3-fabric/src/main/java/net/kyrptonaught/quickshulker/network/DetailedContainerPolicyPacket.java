@@ -8,15 +8,16 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 /** Versioned independently from the two-boolean legacy policy. */
-public record DetailedContainerPolicyPacket(boolean enabled,boolean creativeOnly,int mask) implements CustomPacketPayload{
-    public static final Type<DetailedContainerPolicyPacket> ID=new Type<>(Identifier.fromNamespaceAndPath("quickshulker","container_policy_v2"));
+public record DetailedContainerPolicyPacket(boolean enabled,boolean creativeOnly,int mask,int creativeMask) implements CustomPacketPayload{
+    public DetailedContainerPolicyPacket(boolean enabled,boolean creativeOnly,int mask){this(enabled,creativeOnly,mask,0);}
+    public static final Type<DetailedContainerPolicyPacket> ID=new Type<>(Identifier.fromNamespaceAndPath("quickshulker","container_policy_v3"));
     public static final StreamCodec<FriendlyByteBuf,DetailedContainerPolicyPacket> CODEC=StreamCodec.ofMember(
-        (p,b)->{b.writeBoolean(p.enabled);b.writeBoolean(p.creativeOnly);b.writeInt(p.mask);},
-        b->new DetailedContainerPolicyPacket(b.readBoolean(),b.readBoolean(),b.readInt()));
+        (p,b)->{b.writeBoolean(p.enabled);b.writeBoolean(p.creativeOnly);b.writeInt(p.mask);b.writeInt(p.creativeMask);},
+        b->new DetailedContainerPolicyPacket(b.readBoolean(),b.readBoolean(),b.readInt(),b.readInt()));
     public static void register(){PayloadTypeRegistry.clientboundPlay().register(ID,CODEC);}
     public static boolean canSend(ServerPlayer player){return ServerPlayNetworking.canSend(player,ID);}
     public static void send(ServerPlayer player){
-        var c=QuickShulkerMod.getConfig();if(canSend(player))ServerPlayNetworking.send(player,new DetailedContainerPolicyPacket(c.quickContainers,c.quickContainersCreativeOnly,ContainerKind.mask(c)));
+        var c=QuickShulkerMod.getConfig();if(canSend(player))ServerPlayNetworking.send(player,new DetailedContainerPolicyPacket(c.quickContainers,c.quickContainersCreativeOnly,ContainerKind.mask(c),c.containerCreativeMask & ContainerKind.allMask()));
     }
     public Type<? extends CustomPacketPayload> type(){return ID;}
 }

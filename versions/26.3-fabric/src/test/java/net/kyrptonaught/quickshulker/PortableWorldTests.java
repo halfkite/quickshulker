@@ -13,6 +13,42 @@ import net.minecraft.world.item.*;
 
 /** Runs with real levels, recipes, players and applied production Mixins, without reflection. */
 public final class PortableWorldTests {
+    @GameTest(maxTicks = 100)
+    public void childPermissionModes(GameTestHelper helper) {
+        var player=helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL);
+        var c=QuickShulkerMod.getConfig();
+        boolean enabled=c.quickContainers,creative=c.quickContainersCreativeOnly;
+        int mask=ContainerKind.mask(c),creativeMask=c.containerCreativeMask;
+        try {
+            c.quickContainers=true;c.quickContainersCreativeOnly=false;
+            for(var kind:ContainerKind.values()) {
+                var item=net.minecraft.core.registries.BuiltInRegistries.ITEM.stream()
+                    .filter(candidate->PortableContainers.kind(new ItemStack(candidate))==kind)
+                    .findFirst().orElseThrow(()->new AssertionError("No item for container kind: "+kind));
+                var stack=new ItemStack(item);
+                for(int mode=0;mode<3;mode++) {
+                    kind.setMode(c,mode);
+                    player=helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL);
+                    check(PortableContainers.allowed(player,stack)==(mode==1),"Survival child permission: "+kind);
+                    player=helper.makeMockPlayer(net.minecraft.world.level.GameType.CREATIVE);
+                    check(PortableContainers.allowed(player,stack)==(mode!=2),"Creative child permission: "+kind);
+                    player=helper.makeMockPlayer(net.minecraft.world.level.GameType.SPECTATOR);
+                    check(!PortableContainers.allowed(player,stack),"Spectator never opens child: "+kind);
+                }
+                kind.setMode(c,1);
+            }
+            player=helper.makeMockPlayer(net.minecraft.world.level.GameType.SURVIVAL);
+            c.quickContainersCreativeOnly=true;
+            check(!PortableContainers.allowed(player,new ItemStack(Items.CHEST)),"Master creative restriction remains a ceiling");
+            player=helper.makeMockPlayer(net.minecraft.world.level.GameType.CREATIVE);
+            c.quickContainers=false;
+            check(!PortableContainers.allowed(player,new ItemStack(Items.CHEST)),"Master false denies even creative");
+        } finally {
+            c.quickContainers=enabled;c.quickContainersCreativeOnly=creative;
+            ContainerKind.applyMask(c,mask);c.containerCreativeMask=creativeMask;
+        }
+        helper.succeed();
+    }
     private static void check(boolean result, String message) {
         if (!result) throw new AssertionError(message);
     }

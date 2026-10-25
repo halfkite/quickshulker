@@ -23,6 +23,8 @@ public class ConfigOptions implements AbstractConfigFile {
     public boolean quickBrewingStand = true;
     public boolean quickContainers = true;
     public boolean quickContainersCreativeOnly = true;
+    @Comment("Per-container creative-only bit mask; zero preserves existing child permissions")
+    public int containerCreativeMask = 0;
     public boolean rightClickContainerShulker = true;
     public boolean quickGrindstone = true;
     public boolean quickSmithingTable = true;
@@ -45,8 +47,11 @@ public class ConfigOptions implements AbstractConfigFile {
 
     @Comment("Right Clicking the opened shulker in your inv closes it")
     public boolean rightClickClose = false;
-    @Comment("Play sound when shulker is opened or closed")
+    @Comment("Client only: play quick-open sounds on this client")
     public boolean playSound = true;
+    @Comment("Client only: silence quick shulker sounds on this client; placed blocks are unaffected")
+    public boolean silentShulker = false;
+    public boolean shouldPlayQuickSound(boolean shulker){return playSound && (!shulker || !silentShulker);}
     @Comment("Right Clicking a shulker with an item inserts it")
     public boolean supportsBundlingInsert = true;
     @Comment("Right Clicking an item with a shulker inserts it")

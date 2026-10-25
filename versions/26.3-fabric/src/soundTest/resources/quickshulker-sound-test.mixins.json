@@ -1,0 +1,1 @@
+{"required":true,"package":"net.kyrptonaught.quickshulker.soundtest.mixin","compatibilityLevel":"JAVA_25","client":["SoundObserverMixin"],"injectors":{"defaultRequire":1}}

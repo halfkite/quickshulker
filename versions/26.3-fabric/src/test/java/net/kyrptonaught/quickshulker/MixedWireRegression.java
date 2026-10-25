@@ -20,7 +20,9 @@ public final class MixedWireRegression {
         check(metadata.getName().equals("QuickShulkerMore"), "Public name is More");
         String gameVersion = FabricLoader.getInstance().getModContainer("minecraft").orElseThrow()
             .getMetadata().getVersion().getFriendlyString();
-        check(metadata.getVersion().getFriendlyString().equals("1.0.1-" + gameVersion), "More version matches the actual game");
+        String expectedVersion=System.getProperty("quickshulker.compatibility.expectedVersion",System.getProperty("quickshulker.build.version"));
+        check(expectedVersion!=null,"Build or external-artifact version supplied by the test launcher");
+        check(metadata.getVersion().getFriendlyString().equals(expectedVersion), "More version matches the selected build or verified shared artifact");
         check(QuickShulkerMod.MOD_ID.equals("quickshulker"), "Legacy internal ID preserved");
         check(MoreReleaseTags.version("3.3.0-26.3", "fabric", "26.3").isEmpty(), "Historical 3.x tags cannot prompt an upgrade");
         check(MoreReleaseTags.version("quickshulkermore-fabric-1.0.1-26.3", "fabric", "26.3").orElseThrow().equals("1.0.1"), "More release tag accepted");

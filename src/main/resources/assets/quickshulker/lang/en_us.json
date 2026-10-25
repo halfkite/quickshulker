@@ -1,4 +1,5 @@
 {
+  "quickshulker.config.sound_client_only": "Only affects this client, not other players or sounds from placed blocks.",
   "quickshulker.bundle.nested": "Nested bundles cannot be quick-edited; use the vanilla bundle controls.",
   "key.quickshulker.config.quickContainers": "Quick containers (master)",
   "key.quickshulker.config.quickContainersCreativeOnly": "Portable containers: creative only (server policy)",
@@ -70,5 +71,6 @@
   "key.quickshulker.config.quickFurnace": "Furnace",
   "key.quickshulker.config.quickSmoker": "Smoker",
   "key.quickshulker.config.quickBlastFurnace": "Blast furnace",
-  "key.quickshulker.config.quickBrewingStand": "Brewing stand"
+  "key.quickshulker.config.quickBrewingStand": "Brewing stand",
+  "key.quickshulker.config.silentShulker": "Silence quick shulker boxes"
 }

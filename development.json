@@ -6,11 +6,14 @@
     {"buildTarget": "1.21.1-fabric", "minecraftVersions": ["1.21", "1.21.1"]},
     {"buildTarget": "1.21.3-fabric", "minecraftVersions": ["1.21.2", "1.21.3"]},
     {"buildTarget": "1.21.8-fabric", "minecraftVersions": ["1.21.6", "1.21.7", "1.21.8"]},
-    {"buildTarget": "1.21.10-fabric", "minecraftVersions": ["1.21.9", "1.21.10"]}
+    {"buildTarget": "1.21.10-fabric", "minecraftVersions": ["1.21.9", "1.21.10"]},
+    {"buildTarget": "26.1-fabric", "minecraftVersions": ["26.1", "26.1.1", "26.1.2"]}
   ],
   "targets": {
     "26.2-fabric": {"project": "versions/26.2-fabric", "java": 25},
     "26.1-fabric": {"project": "versions/26.1-fabric", "java": 25},
+    "26.1.1-fabric": {"project": "versions/26.1.1-fabric", "java": 25},
+    "26.1.2-fabric": {"project": "versions/26.1.2-fabric", "java": 25},
     "1.21.11-fabric": {"project": "versions/1.21.11-fabric", "java": 21},
     "1.21.10-fabric": {"project": "versions/1.21.10-fabric", "java": 21},
     "1.21.9-fabric": {"project": "versions/1.21.9-fabric", "java": 21},

@@ -40,10 +40,7 @@ public class EventListeners {
     }
 
     public static void containerClosedListener(ServerPlayerEntity player){
-        if(QuickShulkerMod.getConfig().playSound) {
-            var stack = ((ItemInventoryContainer) player.currentScreenHandler).getSourceStack();
-            var data = net.kyrptonaught.quickshulker.api.QuickOpenableRegistry.getQuickie(stack.getItem());
-            if (data != null) Util.playSound(player, data.getSound(stack, false));
-        }
+        var stack = ((ItemInventoryContainer) player.currentScreenHandler).getSourceStack();
+        Util.playItemSound(player,stack,false);
     }
 }

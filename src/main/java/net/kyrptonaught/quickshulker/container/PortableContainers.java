@@ -57,6 +57,7 @@ public final class PortableContainers {
         var config=QuickShulkerMod.getConfig();
         config.quickContainers=policy.enabled();config.quickContainersCreativeOnly=policy.creativeOnly();
         ContainerKind.applyMask(config,policy.mask());
+        config.containerCreativeMask=policy.creativeMask();
     }
     public static boolean hasDetailedPolicy(){return detailed;}
     public static boolean allowed(PlayerEntity player){
@@ -67,7 +68,8 @@ public final class PortableContainers {
     }
     public static boolean allowed(PlayerEntity player,ItemStack stack){
         var kind=kind(stack);if(kind==null||!allowed(player)||!kind.enabled(QuickShulkerMod.getConfig()))return false;
-        return !player.getWorld().isClient||remote==null||(remote.mask()&kind.bit())!=0;
+        if(kind.creativeOnly(QuickShulkerMod.getConfig())&&!player.isCreative())return false;
+        return !player.getWorld().isClient||remote==null||((remote.mask()&kind.bit())!=0&&((remote.creativeMask()&kind.bit())==0||player.isCreative()));
     }
     public static boolean custom(ContainerKind kind){return kind==ContainerKind.POT||kind==ContainerKind.CRAFTER;}
     public static void open(PlayerEntity player,ItemStack stack){

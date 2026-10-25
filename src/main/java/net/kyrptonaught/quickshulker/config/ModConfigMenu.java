@@ -28,7 +28,8 @@ public class ModConfigMenu {
 
         ConfigSection optionsSection = new ConfigSection(configScreen, Text.translatable("key.quickshulker.config.category.options"));
         optionsSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.rightClickClose"), options.rightClickClose, false).setSaveConsumer(value -> options.rightClickClose = value));
-        optionsSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.playSound"), options.playSound, true).setSaveConsumer(value -> options.playSound = value));
+        optionsSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.playSound"), options.playSound, true).setSaveConsumer(value -> options.playSound = value).setToolTip(Text.translatable("quickshulker.config.sound_client_only")));
+        optionsSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.silentShulker"), options.silentShulker, false).setSaveConsumer(value -> options.silentShulker = value).setToolTip(Text.translatable("quickshulker.config.sound_client_only")));
 
         SubItem subItem = (SubItem) optionsSection.addConfigItem(new SubItem(Text.translatable("key.quickshulker.config.category.bundleing"), true));
         subItem.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.supportsBundlingInsert"), options.supportsBundlingInsert, true).setSaveConsumer(value -> options.supportsBundlingInsert = value));
@@ -51,8 +52,7 @@ public class ModConfigMenu {
         ConfigSection containers=new ConfigSection(configScreen,Text.translatable("quickshulker.config.containers"));
         containers.addConfigItem(new ContainerModeItem(options));
         for(ContainerKind kind:ContainerKind.values())
-            containers.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config."+kind.key),kind.enabled(options),true)
-                .setSaveConsumer(v->kind.set(options,v)).setToolTip(Text.translatable("quickshulker.config.server_policy")));
+            containers.addConfigItem(new ContainerModeItem(options,kind));
         enabledSection.addConfigItem(new BooleanItem(Text.translatable("key.quickshulker.config.quickBundle"),options.quickBundle,true).setSaveConsumer(v->options.quickBundle=v).setRequiresRestart());
         return configScreen;
     }

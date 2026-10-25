@@ -129,6 +129,27 @@ class BuildTargetTests(unittest.TestCase):
         with self.assertRaises(BuildTargetError):
             resolve_targets(self.root)
 
+    def test_modern_patch_group_uses_base_release_and_tests_all_patches(self) -> None:
+        path = self.root / "development.json"
+        config = json.loads(path.read_text(encoding="utf-8"))
+        games = ["26.1", "26.1.1", "26.1.2"]
+        for game in games:
+            relative = f"versions/{game}-fabric"
+            config["targets"][f"{game}-fabric"] = {"project": relative, "java": 25}
+            project = self.root / relative
+            project.mkdir(parents=True)
+            (project / "gradlew").write_text("# wrapper\n", encoding="utf-8")
+            (project / "gradle.properties").write_text(f"minecraft_version={game}\nmod_version=1.0.0\narchives_base_name=quickshulkermore\n", encoding="utf-8")
+        config["fabricCompatibilityGroups"] = [{"buildTarget": "26.1-fabric", "minecraftVersions": games}]
+        path.write_text(json.dumps(config), encoding="utf-8")
+        selected = resolve_targets(self.root, "26.1.2-fabric")[0]
+        self.assertEqual(selected["target"], "26.1-fabric")
+        self.assertEqual(selected["artifact_minecraft"], "26.1-26.1.2")
+        self.assertEqual(selected["minecraft_dependency"], ">=26.1 <=26.1.2")
+        targets = resolve_compatibility_targets(self.root)
+        self.assertEqual([target["minecraft"] for target in targets], games)
+        self.assertEqual({target["artifact_target"] for target in targets}, {"26.1-fabric"})
+
     def test_release_tag_also_checks_nonpublishing_runtime_projects(self) -> None:
         add_test_compatibility_group(self.root)
         path = self.root / "versions/1.21-fabric/gradle.properties"

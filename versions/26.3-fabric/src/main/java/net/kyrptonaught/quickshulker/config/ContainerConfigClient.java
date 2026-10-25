@@ -10,7 +10,7 @@ public final class ContainerConfigClient{
         var client=Minecraft.getInstance();
         if(client.player!=null && net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.canSend(ContainerPolicyUpdatePacket.ID)){
             var c=QuickShulkerMod.getConfig();
-            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ContainerPolicyUpdatePacket(c.quickContainers,c.quickContainersCreativeOnly,ContainerKind.mask(c)));
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new ContainerPolicyUpdatePacket(c.quickContainers,c.quickContainersCreativeOnly,ContainerKind.mask(c),c.containerCreativeMask & ContainerKind.allMask()));
         }
     }
 }

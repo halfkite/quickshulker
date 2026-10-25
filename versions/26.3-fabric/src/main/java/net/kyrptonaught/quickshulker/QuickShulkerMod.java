@@ -40,6 +40,7 @@ public class QuickShulkerMod implements ModInitializer, RegisterQuickShulker {
     @Override
     public void onInitialize() {
         config.load();
+        net.kyrptonaught.quickshulker.network.QuickSoundPacket.register();
         net.kyrptonaught.quickshulker.command.QuickShulkerCommands.register();
         net.kyrptonaught.quickshulker.network.ContainerPolicyPacket.register();
         net.kyrptonaught.quickshulker.network.DetailedContainerPolicyPacket.register();

@@ -26,6 +26,13 @@ public enum ContainerKind {
     }
     public boolean enabled(ConfigOptions config) { return getter.test(config); }
     public void set(ConfigOptions config, boolean value) { setter.accept(config,value); }
+    public boolean creativeOnly(ConfigOptions config) { return (config.containerCreativeMask & bit()) != 0; }
+    public int mode(ConfigOptions config) { return !enabled(config) ? 2 : creativeOnly(config) ? 0 : 1; }
+    public void setMode(ConfigOptions config, int mode) {
+        if (mode < 0 || mode > 2) throw new IllegalArgumentException("Invalid container mode");
+        set(config, mode != 2);
+        config.containerCreativeMask = mode == 0 ? config.containerCreativeMask | bit() : config.containerCreativeMask & ~bit();
+    }
     public int bit() { return 1 << ordinal(); }
     public static int allMask() { return (1 << values().length)-1; }
     public static int mask(ConfigOptions config) {

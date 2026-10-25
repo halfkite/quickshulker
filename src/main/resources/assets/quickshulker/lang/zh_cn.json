@@ -1,4 +1,6 @@
 {
+  "quickshulker.config.sound_client_only": "仅影响本客户端，不改变其他玩家或世界中已放置方块的声音。",
+  "key.quickshulker.config.silentShulker": "快捷潜影盒静音",
   "quickshulker.bundle.nested": "嵌套收纳袋暂不支持快捷编辑，请使用原版收纳袋操作。",
   "key.quickshulker.config.quickContainers": "快捷容器（主开关）",
   "key.quickshulker.config.quickContainersCreativeOnly": "快捷容器仅限创造模式（服务器配置）",

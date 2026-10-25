@@ -4,7 +4,7 @@
 
 QuickShulkerMore 是 [QuickShulker](https://github.com/MoRanpcy/quickshulker) 的非官方扩展版，增加 Carpet AMS Addition 大容器兼容、快捷工作站和快捷容器。项目遵循上游 MIT 许可证。
 
-当前模组版本为 **1.0.1**，主要开发版本是 Minecraft `26.3` / Fabric，支持版本为 Minecraft `1.21-26.3` Fabric 加载器
+当前模组版本为 **1.0.2**，主要开发版本是 Minecraft `26.3` / Fabric，支持版本为 Minecraft `1.21-26.3` Fabric 加载器
 
 ## 原有功能 
 - 按 K 或右键打开手持或背包中的物品界面。内置支持工作台、切石机、潜影盒、末影箱、铁砧和收纳袋;

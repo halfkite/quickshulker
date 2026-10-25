@@ -1,0 +1,47 @@
+// Real socket clients, with test-only sound-engine instrumentation. Not packaged in the mod.
+allprojects {
+    afterEvaluate { project ->
+        def mode=project.property('soundMode')
+        if(!(mode in ['server','quiet','loud','plain']))throw new GradleException('Invalid soundMode')
+        def artifact=project.file(project.property('soundArtifact'))
+        if(!artifact.isFile())throw new GradleException('Missing soundArtifact')
+        def harness=project.sourceSets.create('soundTest')
+        harness.compileClasspath=project.sourceSets.main.compileClasspath+project.sourceSets.main.output
+        harness.runtimeClasspath=harness.output+project.sourceSets.main.runtimeClasspath.minus(project.sourceSets.main.output)
+        project.loom.mods.removeAll{true}
+        project.loom.mods.create('quickshulkerSoundTest'){sourceSet harness}
+        if(mode!='plain')project.dependencies.add('runtimeOnly',project.files(artifact))
+        def folder=project.file('build/sound-test/'+mode)
+        project.loom.runs.create('soundTest'){
+            if(mode=='server')server() else client()
+            source harness
+            runDir project.relativePath(folder)
+            vmArg '-Dquickshulker.sound.mode='+mode
+            vmArg '-Xmx768m'
+            if(mode!='server')programArgs '--username','Sound_'+mode
+        }
+        project.tasks.named('runSoundTest'){
+            timeout=java.time.Duration.ofMinutes(8)
+            doFirst{
+                folder.mkdirs()
+                if(mode=='server'){
+                    new File(folder,'eula.txt').text='eula=true\n'
+                    new File(folder,'server.properties').text='''server-ip=127.0.0.1
+server-port=25590
+online-mode=false
+enforce-secure-profile=false
+white-list=false
+enforce-whitelist=false
+view-distance=2
+simulation-distance=2
+spawn-protection=0
+pause-when-empty-seconds=-1
+gamemode=creative
+generate-structures=false
+level-name=sound-world
+'''
+                }
+            }
+        }
+    }
+}

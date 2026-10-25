@@ -98,7 +98,7 @@ public class Util {
                     contents.setWriteAllowed(() -> openedContainer.isSourceValid(player));
                 }
             }
-            if (qsData != null && QuickShulkerMod.getConfig().playSound) playSound(player, qsData.getSound(stack, true));
+            playItemSound(player,stack,true);
             player.containerMenu.addSlotListener(forceCloseScreenIfNotPresent(player, sourceInventory, sourceInventorySlot, stack));
         }
     }
@@ -133,7 +133,7 @@ public class Util {
         ItemStack stack = player.getInventory().getItem(selectedInvIndex);
         QuickShulkerData qsData = QuickOpenableRegistry.getQuickie(stack.getItem());
         if (qsData != null) {
-            playSound(player, qsData.getSound(stack, true));
+            playItemSound(player,stack,true);
         }
     }
 
@@ -141,15 +141,17 @@ public class Util {
         ItemStack stack = player.getInventory().getItem(selectedInvIndex);
         QuickShulkerData qsData = QuickOpenableRegistry.getQuickie(stack.getItem());
         if (qsData != null) {
-            playSound(player, qsData.getSound(stack, false));
+            playItemSound(player,stack,false);
         }
     }
 
     public static void playSound(Player player, SoundEvent sound){
-        if(sound != null){
-//            player.level().playSound(null, player.getBlockPos(), sound, player.getSoundCategory());
-            player.level().playSound(null, player.getX(), player.getY(), player.getZ(), sound, SoundSource.BLOCKS);
-        }
+        net.kyrptonaught.quickshulker.network.QuickSoundPacket.broadcast(player,sound,false);
+    }
+    public static void playItemSound(Player player,ItemStack stack,boolean opening){
+        var data=QuickOpenableRegistry.getQuickie(stack.getItem());
+        if(data!=null)
+            net.kyrptonaught.quickshulker.network.QuickSoundPacket.broadcast(player,data.getSound(stack,opening),net.kyrptonaught.shulkerutils.ShulkerUtils.isShulkerItem(stack));
     }
 
     public static boolean areItemsEqualExactly(ItemStack stack, ItemStack otherStack) {
